@@ -128,6 +128,16 @@
 	li:first-child {
 		border-top: 0;
 	}
+	@media (min-width: 1000px) {
+		ol {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			column-gap: 32px;
+		}
+		li:nth-child(2) {
+			border-top: 0;
+		}
+	}
 	.name {
 		display: flex;
 		align-items: center;

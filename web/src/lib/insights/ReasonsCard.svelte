@@ -3,6 +3,7 @@
 	and the switches given no reason shown as plainly as the rest.
 -->
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import type { DayKey, Insights } from '#lib/app/app.svelte.ts';
 	import { dayLabel } from '#lib/ui/format.ts';
 	import Card from './Card.svelte';
@@ -66,7 +67,12 @@
 <Card title="why you switched" area="why" meta={weekly ? 'per week' : 'per day'}>
 	<p class="readout" aria-live="polite">
 		{#if bucket}
-			<b>{weekly ? `week of ${dayLabel(bucket.key)}` : dayLabel(bucket.key)}</b> ·
+			{#if weekly}
+				<b>week of {dayLabel(bucket.key)}</b>
+			{:else}
+				<a class="day" href="{resolve('/history')}/{bucket.key}"><b>{dayLabel(bucket.key)}</b></a>
+			{/if}
+			·
 			{#each ROWS as r, k (r.key)}{k ? ' · ' : ''}{r.label} <b>{bucket.reasons[r.key]}</b>{/each}
 		{:else if all}
 			{#if tagged}

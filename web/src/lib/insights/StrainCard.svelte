@@ -45,7 +45,7 @@
 <Card title="strain next to switching" area="strain" meta="shown together, not as cause">
 	<p class="readout" aria-live="polite">
 		{#if point}
-			<b>{dayLabel(point.day)}</b> ·
+			<a class="day" href="{resolve('/history')}/{point.day}"><b>{dayLabel(point.day)}</b></a> ·
 			{#if point.tracked}<b>{point.switches}</b> switches{:else}nothing tracked{/if}
 			·
 			{#if point.strain !== null || point.stress !== null}

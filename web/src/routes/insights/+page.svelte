@@ -135,7 +135,7 @@
 		gap: 12px;
 		margin: 0 calc(-1 * var(--gutter)) 12px;
 		padding: calc(var(--safe-top) + 6px) var(--gutter) 10px;
-		background: color-mix(in srgb, var(--bg) 88%, transparent);
+		background: color-mix(in srgb, var(--bg) 94%, transparent);
 		backdrop-filter: blur(12px);
 		-webkit-backdrop-filter: blur(12px);
 	}

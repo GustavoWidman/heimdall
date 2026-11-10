@@ -3,6 +3,7 @@
 	and below it, how much of the focused time was spent juggling.
 -->
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import type { DayKey, Insights } from '#lib/app/app.svelte.ts';
 	import { dayLabel, spent } from '#lib/ui/format.ts';
 	import Card from './Card.svelte';
@@ -42,7 +43,10 @@
 <Card title="focus stretches" area="stretch" meta="time on one thing before moving on">
 	<p class="readout" aria-live="polite">
 		{#if point}
-			<b>{dayLabel(point.day)}{point.day === today ? ', so far' : ''}</b> ·
+			<a class="day" href="{resolve('/history')}/{point.day}"
+				><b>{dayLabel(point.day)}{point.day === today ? ', so far' : ''}</b></a
+			>
+			·
 			{#if point.stretchMedianMs !== null}
 				typical <b>{spent(point.stretchMedianMs)}</b> · longest
 				<b>{spent(point.stretchLongestMs ?? 0)}</b> · juggling

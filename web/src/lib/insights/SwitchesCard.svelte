@@ -1,5 +1,6 @@
 <!-- Switches per day against the person's own usual range for the window. -->
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import type { DayKey, Insights } from '#lib/app/app.svelte.ts';
 	import { dayLabel, spent } from '#lib/ui/format.ts';
 	import Card from './Card.svelte';
@@ -42,7 +43,10 @@
 >
 	<p class="readout" aria-live="polite">
 		{#if point}
-			<b>{dayLabel(point.day)}{point.day === today ? ', so far' : ''}</b> ·
+			<a class="day" href="{resolve('/history')}/{point.day}"
+				><b>{dayLabel(point.day)}{point.day === today ? ', so far' : ''}</b></a
+			>
+			·
 			{#if point.tracked}
 				<b>{point.switches}</b> switches · {spent(point.focusMs)} focused
 				{#if place(point.switches) && point.day !== today}

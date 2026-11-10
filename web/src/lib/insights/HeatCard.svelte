@@ -28,6 +28,10 @@
 		heat.forEach((row, w) => row.forEach((v, h) => v > best.v && (best = { w, h, v })));
 		return best;
 	});
+	const hourly = $derived(
+		Array.from({ length: 24 }, (_, h) => heat.reduce((n, row) => n + row[h], 0))
+	);
+	const peakHour = $derived(hourly.indexOf(Math.max(...hourly)));
 	const busiest = $derived(
 		heat.map((row) => {
 			const v = Math.max(...row);
@@ -44,6 +48,9 @@
 		{#if at}
 			<b>{PLURAL[at.w]}, {hh(at.h)}</b> · <b>{heat[at.w][at.h].toFixed(1)}</b> switches in that hour on
 			average
+		{:else if max > 0 && days < 14}
+			busiest around <b>{hh(peakHour)}</b> over {days} tracked {days === 1 ? 'day' : 'days'}; the
+			weekday pattern fills in over a few weeks.
 		{:else if max > 0}
 			busiest on <b>{PLURAL[peak.w]} around {hh(peak.h)}</b>, {peak.v.toFixed(1)} switches in that hour
 			on average, over {days} tracked {days === 1 ? 'day' : 'days'}.

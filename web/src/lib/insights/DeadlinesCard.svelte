@@ -4,7 +4,7 @@
 -->
 <script lang="ts">
 	import type { DeadlinePressure, Task, TaskId } from '#lib/app/app.svelte.ts';
-	import { clock, spent } from '#lib/ui/format.ts';
+	import { clock, dayLabel, spent } from '#lib/ui/format.ts';
 	import Card from './Card.svelte';
 
 	let {
@@ -20,16 +20,8 @@
 	} = $props();
 
 	const byId = $derived(new Map<TaskId, Task>(all.map((t) => [t.id, t])));
-	const date = $derived(
-		new Intl.DateTimeFormat('en-GB', {
-			timeZone: zone,
-			weekday: 'short',
-			day: 'numeric',
-			month: 'short'
-		})
-	);
-	const due = (at: number) =>
-		`${date.format(at).replace(',', '').toLowerCase()}, ${clock(at, zone)}`;
+	const date = $derived(new Intl.DateTimeFormat('en-CA', { timeZone: zone }));
+	const due = (at: number) => `${dayLabel(date.format(at))}, ${clock(at, zone)}`;
 	const pct = (a: number, b: number) => (b > 0 ? Math.round((100 * a) / b) : 0);
 </script>
 

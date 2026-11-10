@@ -58,6 +58,11 @@
 		color: var(--ink);
 		font-variant-numeric: tabular-nums;
 	}
+	.card :global(.readout a.day) {
+		text-decoration: underline;
+		text-decoration-color: var(--ink-4);
+		text-underline-offset: 3px;
+	}
 	.card :global(.legend) {
 		display: flex;
 		flex-wrap: wrap;
