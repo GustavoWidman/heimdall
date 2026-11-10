@@ -5,7 +5,7 @@ use std::time::Duration;
 use axum::Router;
 use axum::body::Body;
 use axum::http::{Request, Response, StatusCode, header};
-use clap::Parser;
+use clap::FromArgMatches;
 use http_body_util::BodyExt;
 use serde::Deserialize;
 use serde_json::value::RawValue;
@@ -13,7 +13,7 @@ use serde_json::{Value, json};
 use tempfile::TempDir;
 use tower::ServiceExt;
 
-use crate::{Cli, app, hash_password};
+use crate::{ServeConfig, app, cli, hash_password};
 
 const PASSWORD: &str = "correct horse battery staple";
 const INDEX_HTML: &str = "<!doctype html><title>heimdall</title>";
@@ -110,8 +110,8 @@ fn start(root: &Path, flags: &[&str]) -> Router {
         format!("--password-hash-file={}", dir("hash")),
     ];
     args.extend(flags.iter().map(|flag| (*flag).to_owned()));
-    let cli = Cli::try_parse_from(args).unwrap();
-    app(&cli.serve.unwrap()).unwrap()
+    let matches = cli().try_get_matches_from(args).unwrap();
+    app(&ServeConfig::from_arg_matches(&matches).unwrap()).unwrap()
 }
 
 fn json_post(path: &str, cookie: Option<&str>, body: &str) -> Request<Body> {

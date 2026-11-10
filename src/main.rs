@@ -19,19 +19,22 @@ use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, FromArgMatches, Subcommand};
 use eyre::WrapErr;
 use tokio::sync::watch;
 use tower_http::compression::CompressionLayer;
 use tower_http::services::{ServeDir, ServeFile};
 
-#[derive(Parser)]
-#[command(version, about, args_conflicts_with_subcommands = true)]
-struct Cli {
-    #[command(subcommand)]
-    command: Option<Command>,
-    #[command(flatten)]
-    serve: Option<ServeConfig>,
+/// Without a subcommand, heimdall serves and takes the serve flags. The flags are not
+/// parsed when a subcommand is given, so their env vars (the Nix package sets
+/// HEIMDALL_WEB_DIR) do not make `heimdall hash-password` demand the rest of them.
+fn cli() -> clap::Command {
+    let cli = clap::Command::new("heimdall")
+        .version(env!("CARGO_PKG_VERSION"))
+        .about(env!("CARGO_PKG_DESCRIPTION"))
+        .args_conflicts_with_subcommands(true)
+        .subcommand_negates_reqs(true);
+    ServeConfig::augment_args(Command::augment_subcommands(cli))
 }
 
 #[derive(Subcommand)]
@@ -254,10 +257,12 @@ async fn serve(config: ServeConfig) -> eyre::Result<()> {
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
-    let cli = Cli::parse();
-    match (cli.command, cli.serve) {
-        (Some(Command::HashPassword), _) => hash_password(std::io::stdin(), std::io::stdout()),
-        (None, Some(config)) => serve(config).await,
-        (None, None) => unreachable!("clap requires the serve flags when no subcommand is given"),
+    let matches = cli().get_matches();
+    if matches.subcommand().is_some() {
+        match Command::from_arg_matches(&matches).unwrap_or_else(|e| e.exit()) {
+            Command::HashPassword => hash_password(std::io::stdin(), std::io::stdout()),
+        }
+    } else {
+        serve(ServeConfig::from_arg_matches(&matches).unwrap_or_else(|e| e.exit())).await
     }
 }
