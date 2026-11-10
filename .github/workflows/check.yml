@@ -54,6 +54,20 @@ jobs:
             substituters = https://cache.nixos.org/ https://cache.r3dlust.com
             trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= cache.r3dlust.com-1:Wdkf9mes2ued0P7C7CL3Jax1b4KPuJwQpM3h4G/Z+yI=
             system-features = nixos-test benchmark big-parallel kvm
+      # The Rust dependency build that release.yml saved on main, when it matches exactly.
+      - name: Locate the Rust dependency build
+        id: deps
+        run: .github/scripts/deps-cache locate >> "$GITHUB_OUTPUT"
+      - name: Restore the Rust dependency build
+        id: deps-cache
+        uses: nix-community/cache-nix-action@v7.0.2
+        with:
+          primary-key: ${{ steps.deps.outputs.key }}
+          nix: false
+          paths: ${{ runner.temp }}/heimdall-deps
+          save: false
+      - if: steps.deps-cache.outputs.hit-primary-key == 'true'
+        run: .github/scripts/deps-cache import "${{ steps.deps.outputs.path }}"
       - run: nix flake check --print-build-logs
       # Records the tree that passed, so the release run of the same tree on main can reuse
       # this check (see .github/scripts/checked-tree). On a pull request this is the merge
