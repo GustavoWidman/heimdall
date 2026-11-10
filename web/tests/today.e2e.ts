@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { expect, hold, open, planDay, row, setClock, tap, test } from './support/fixtures';
-import { addDays, at, TODAY } from './support/seed';
+import { addDays, at, busyToday, history, TODAY } from './support/seed';
 
 const switches = (page: Page) => page.getByRole('main').locator('header').getByRole('img').first();
 const focus = (page: Page) => page.getByRole('region', { name: 'now' });
@@ -204,4 +204,30 @@ test('a tap survives closing the page right after it', async ({ page, touch }) =
 	const again = await context.newPage();
 	await open(again);
 	await expect(row(again, 'durable')).toHaveAttribute('aria-pressed', 'true');
+});
+
+test.describe('on a busy day', () => {
+	test.use({ startAt: at(TODAY, '15:42') });
+
+	test('a row shows each detail whole or not at all', async ({ page, request }) => {
+		await busyToday(history(3)).push(request);
+		await open(page);
+		await expect(switches(page)).toHaveAccessibleName('15');
+		await page.mouse.move(0, 0);
+		const cut = await page
+			.getByRole('region', { name: "today's watch" })
+			.getByRole('listitem')
+			.evaluateAll((items) =>
+				items.flatMap((li) => {
+					const line = li.querySelector('.m')!.getBoundingClientRect();
+					return [...li.querySelectorAll('.m > *')].flatMap((el) => {
+						const r = el.getBoundingClientRect();
+						const shown = r.left < line.right && r.top < line.bottom;
+						const whole = r.right <= line.right + 0.5 && r.bottom <= line.bottom + 0.5;
+						return shown && !whole ? [el.textContent?.trim()] : [];
+					});
+				})
+			);
+		expect(cut, 'details cut part way').toEqual([]);
+	});
 });
