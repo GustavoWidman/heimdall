@@ -1,5 +1,5 @@
 <script lang="ts">
-	import ComingSoon from '#lib/ui/ComingSoon.svelte';
+	import MonthScreen from '#lib/history/MonthScreen.svelte';
 </script>
 
-<ComingSoon title="month" about="the month as a grid of quiet and busy days." />
+<MonthScreen asked={null} />
