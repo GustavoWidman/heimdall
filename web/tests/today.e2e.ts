@@ -129,6 +129,47 @@ test('tap, hold, release, rest, and end the day count as the switching table say
 	await expect(switches(page)).toHaveAccessibleName('4');
 });
 
+test('the toast after a tick undoes it, or moves it a few minutes earlier', async ({
+	page,
+	touch
+}) => {
+	const toast = page.getByRole('region', { name: 'after the switch' });
+	await setClock(page, at(TODAY, '08:55'));
+	await planDay(page, ['alpha', 'beta']);
+
+	await setClock(page, at(TODAY, '09:20'));
+	await tap(row(page, 'alpha'), touch);
+	await expect(toast).toContainText('started alpha');
+	await toast.getByRole('button', { name: 'earlier' }).click();
+	await toast.getByRole('button', { name: '−15m' }).click();
+	await expect(toast).toContainText('it began at 09:05');
+	await expect(focus(page)).toContainText('since 09:05');
+
+	await setClock(page, at(TODAY, '09:40'));
+	await tap(row(page, 'beta'), touch);
+	await expect(switches(page)).toHaveAccessibleName('1');
+	await expect(toast.getByRole('button', { name: 'undo' }), 'the last toast has left').toHaveCount(
+		1
+	);
+	await toast.getByRole('button', { name: 'undo' }).click();
+	await expect(toast.getByRole('status')).toHaveText('undone');
+	await expect(switches(page)).toHaveAccessibleName('0');
+	await expect(row(page, 'alpha')).toHaveAttribute('aria-pressed', 'true');
+	await expectTicks(page, 'beta', 0);
+
+	await setClock(page, at(TODAY, '09:45'));
+	await tap(row(page, 'beta'), touch);
+	await expect(toast.getByRole('button', { name: 'earlier' })).toHaveCount(1);
+	await toast.getByRole('button', { name: 'earlier' }).click();
+	await expect(
+		toast.getByRole('button', { name: '−1h' }),
+		'never back past the tick before it'
+	).toBeDisabled();
+	await toast.getByRole('button', { name: '−30m' }).click();
+	await expect(focus(page)).toContainText('since 09:15');
+	await expect(row(page, 'alpha')).toContainText('10m');
+});
+
 test('leaving a task due soon says so, once, without scolding', async ({ page, touch }) => {
 	await planDay(page, ['the grant', 'coffee']);
 	await page.getByRole('button', { name: 'arrange' }).click();
