@@ -373,13 +373,16 @@
 			transform: translate(0, -50%);
 			pointer-events: auto;
 		}
+		/* While the actions show, the time and tally column holds their width, so the text
+		   ends where they begin instead of running under them. */
 		.row:hover .r,
 		.row:has(:focus-visible) .r {
+			min-width: 112px;
 			opacity: 0;
 		}
-		.row:hover .t,
-		.row:has(:focus-visible) .t {
-			mask-image: linear-gradient(to right, #000 calc(100% - 120px), transparent calc(100% - 80px));
+		.row:hover .m,
+		.row:has(:focus-visible) .m {
+			mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
 		}
 		.r {
 			transition: opacity 0.15s;
