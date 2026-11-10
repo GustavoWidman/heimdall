@@ -122,6 +122,8 @@
 		column-gap: 18px;
 		align-items: center;
 		padding: 18px 16px;
+		/* Room for a two-line juggle, so the board never moves under the thumb. */
+		min-height: 156px;
 		border-radius: 20px;
 		background: var(--panel);
 		border: 1px solid var(--rule-2);
