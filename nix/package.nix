@@ -17,12 +17,13 @@
       craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
       bunLib = bun2nix.packages.${system}.default;
       root = ../.;
+      cargoSources = craneLib.fileset.commonCargoSources root;
 
       args = {
         src = lib.fileset.toSource {
           inherit root;
           fileset = lib.fileset.unions [
-            (craneLib.fileset.commonCargoSources root)
+            cargoSources
             ../.rustfmt.toml
             # The server tests read the shared wire fixture.
             ../contract/sync.json
@@ -30,7 +31,39 @@
         };
         strictDeps = true;
       };
-      cargoArtifacts = craneLib.buildDepsOnly args;
+
+      # The dependency build sees heimdall itself at version 0.0.0: the manifest loses its
+      # version and the lockfile's own entry is rewritten to match. Every release bumps the
+      # version, and without this each bump would rebuild every dependency instead of
+      # fetching them from the binary cache.
+      ownVersion = (lib.importTOML ../Cargo.toml).package.version;
+      depsLock =
+        let
+          lock = builtins.unsafeDiscardStringContext (builtins.readFile ../Cargo.lock);
+          entry = version: "name = \"heimdall\"\nversion = \"${version}\"\n";
+        in
+        assert lib.hasInfix (entry ownVersion) lock;
+        builtins.toFile "Cargo.lock" (
+          builtins.replaceStrings [ (entry ownVersion) ] [ (entry "0.0.0") ] lock
+        );
+      cargoArtifacts = craneLib.buildDepsOnly (
+        removeAttrs args [ "src" ]
+        // {
+          pname = "heimdall";
+          version = "0.0.0";
+          dummySrc = craneLib.mkDummySrc {
+            # Without Cargo.lock, which depsLock stands in for.
+            src = lib.fileset.toSource {
+              inherit root;
+              fileset = lib.fileset.difference cargoSources ../Cargo.lock;
+            };
+            cargoLock = depsLock;
+            cleanCargoTomlFilter =
+              path: lib.concatStringsSep "." path != "package.version" && craneLib.filters.cargoTomlDefault path;
+          };
+          cargoVendorDir = craneLib.vendorCargoDeps { inherit (args) src; };
+        }
+      );
 
       server = craneLib.buildPackage (
         args
