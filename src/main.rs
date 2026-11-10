@@ -138,15 +138,21 @@ fn app(config: &ServeConfig) -> eyre::Result<Router> {
         secure_cookies: !config.insecure_cookies,
     };
 
+    // A page of a thousand ops is about 180 KiB of JSON that gzip shrinks ninefold; brotli
+    // saves a few percent more for about 10 MiB of encoder memory. /live stays
+    // uncompressed: a compressor would hold its events back.
+    let pull = Router::new()
+        .route(
+            "/sync",
+            post(sync::sync).layer(DefaultBodyLimit::max(sync::MAX_REQUEST_BYTES)),
+        )
+        .layer(CompressionLayer::new().no_br());
     let api = Router::new()
         .route("/health", get(|| async { "ok" }))
         .route("/login", post(auth::login))
         .route("/logout", post(auth::logout))
         .route("/session", get(auth::session))
-        .route(
-            "/sync",
-            post(sync::sync).layer(DefaultBodyLimit::max(sync::MAX_REQUEST_BYTES)),
-        )
+        .merge(pull)
         .route("/live", get(sync::live))
         .fallback(|| async { ApiError::NotFound });
 

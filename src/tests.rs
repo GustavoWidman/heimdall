@@ -589,6 +589,24 @@ async fn compresses_static_files_when_the_client_accepts_it() {
 }
 
 #[tokio::test]
+async fn compresses_a_pull_when_the_client_accepts_it() {
+    let server = Server::new();
+    let cookie = server.login().await;
+    let request = Request::post("/api/sync")
+        .header(header::COOKIE, cookie)
+        .header(header::CONTENT_TYPE, "application/json")
+        .header(header::ACCEPT_ENCODING, "gzip")
+        .body(Body::from(r#"{"after":0,"ops":[]}"#))
+        .unwrap();
+    let response = server.send(request).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        header_str(&response, header::CONTENT_ENCODING),
+        Some("gzip")
+    );
+}
+
+#[tokio::test]
 async fn sends_the_build_s_precompressed_copy_as_it_is() {
     let server = Server::new();
     let web = server.root.path().join("web");
