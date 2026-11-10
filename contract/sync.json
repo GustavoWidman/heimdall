@@ -1,0 +1,56 @@
+{
+  "valid_ops": [
+    {
+      "hlc": "0000lkx9a0001a1b2c3d4e5",
+      "kind": "mark",
+      "id": "m_01HXYZ",
+      "set": { "at": 1794286800000, "gesture": { "k": "tap", "task": "t_01HABC" }, "voided": false, "reason": null }
+    },
+    {
+      "hlc": "0000lkx9a0002a1b2c3d4e5",
+      "kind": "mark",
+      "id": "m_01HXYZ",
+      "set": { "reason": "urge" }
+    },
+    {
+      "hlc": "0000lkx9b0000f9e8d7c6b5",
+      "kind": "task",
+      "id": "t_01HABC",
+      "set": { "title": "quarterly report", "hue": 32, "deadline": 1794304320000, "status": "active" }
+    },
+    {
+      "hlc": "0000lkx9c0000f9e8d7c6b5",
+      "kind": "plan",
+      "id": "2026-11-10:t_01HABC",
+      "set": { "on": true, "rank": "a0" }
+    },
+    {
+      "hlc": "0000lkx9d0000f9e8d7c6b5",
+      "kind": "checkin",
+      "id": "2026-11-10",
+      "set": { "strain": 4, "headache": 1, "a_field_from_a_newer_build": [1, 2, 3] }
+    },
+    {
+      "hlc": "0000lkx9e0000f9e8d7c6b5",
+      "kind": "a_kind_from_a_newer_build",
+      "id": "x",
+      "set": { "anything": true }
+    }
+  ],
+  "invalid_ops": [
+    { "why": "hlc too short", "op": { "hlc": "0000lkx9a0001a1b2c3d4e", "kind": "mark", "id": "m_1", "set": { "at": 1 } } },
+    { "why": "hlc has an uppercase char", "op": { "hlc": "0000LKX9A0001A1B2C3D4E5", "kind": "mark", "id": "m_1", "set": { "at": 1 } } },
+    { "why": "kind starts with a digit", "op": { "hlc": "0000lkx9a0001a1b2c3d4e5", "kind": "1mark", "id": "m_1", "set": { "at": 1 } } },
+    { "why": "id is empty", "op": { "hlc": "0000lkx9a0001a1b2c3d4e5", "kind": "mark", "id": "", "set": { "at": 1 } } },
+    { "why": "id has a space", "op": { "hlc": "0000lkx9a0001a1b2c3d4e5", "kind": "mark", "id": "m 1", "set": { "at": 1 } } },
+    { "why": "set is empty", "op": { "hlc": "0000lkx9a0001a1b2c3d4e5", "kind": "mark", "id": "m_1", "set": {} } },
+    { "why": "set is an array", "op": { "hlc": "0000lkx9a0001a1b2c3d4e5", "kind": "mark", "id": "m_1", "set": [1] } },
+    { "why": "missing set", "op": { "hlc": "0000lkx9a0001a1b2c3d4e5", "kind": "mark", "id": "m_1" } },
+    { "why": "not an object", "op": "mark" }
+  ],
+  "exchange": {
+    "request": { "after": 0, "ops": ["valid_ops[0]", "valid_ops[2]"] },
+    "response_shape": { "epoch": "<string>", "head": "<int>", "ops": [{ "seq": "<int>", "op": "<Op, byte for byte as pushed>" }], "more": "<bool>" }
+  },
+  "limits": { "max_ops_per_request": 500, "max_ops_per_response": 1000, "max_op_bytes": 16384 }
+}
