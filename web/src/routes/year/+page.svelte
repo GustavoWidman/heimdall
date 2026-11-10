@@ -1,5 +1,5 @@
 <script lang="ts">
-	import ComingSoon from '#lib/ui/ComingSoon.svelte';
+	import YearScreen from '#lib/history/YearScreen.svelte';
 </script>
 
-<ComingSoon title="year" about="a whole year of switches at a glance." />
+<YearScreen asked={null} />
