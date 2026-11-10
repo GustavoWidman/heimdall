@@ -59,6 +59,10 @@
 				<dd class="mono">{spent(agg.juggleMs)}</dd>
 			</div>
 			<div>
+				<dt>load</dt>
+				<dd class="mono">{spent(agg.loadMs)}</dd>
+			</div>
+			<div>
 				<dt>rest</dt>
 				<dd class="mono">{spent(agg.restMs)}</dd>
 			</div>
@@ -123,7 +127,7 @@
 	}
 	.totals {
 		display: grid;
-		grid-template-columns: repeat(4, 1fr);
+		grid-template-columns: repeat(5, minmax(0, 1fr));
 		gap: 8px;
 	}
 	.totals div {
@@ -134,6 +138,11 @@
 	}
 	.totals dd {
 		font-size: 20px;
+	}
+	@media (max-width: 420px) {
+		.totals dd {
+			font-size: 17px;
+		}
 	}
 	.totals dt {
 		font-size: 12px;

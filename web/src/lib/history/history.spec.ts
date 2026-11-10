@@ -106,7 +106,9 @@ describe('the week next to the week before', () => {
 				...aggregateDay(view, settings),
 				switches,
 				focusMs: focusMin * MIN,
-				juggleMs: juggleMin * MIN
+				juggleMs: juggleMin * MIN,
+				// every juggle holds two tasks
+				loadMs: (focusMin + juggleMin) * MIN
 			}
 		]);
 
@@ -114,12 +116,14 @@ describe('the week next to the week before', () => {
 		expect(contrast(totals(30, 600, 60), totals(18, 520, 62), false)).toEqual([
 			'12 more switches than last week',
 			'1h20 more focus than last week',
-			'about the same juggling as last week'
+			'about the same juggling as last week',
+			'1h18 more load than last week'
 		]);
 		expect(contrast(totals(17, 300), totals(18, 400), true)).toEqual([
 			'1 fewer switch than by this point last week',
 			'1h40 less focus than by this point last week',
-			'about the same juggling as by this point last week'
+			'about the same juggling as by this point last week',
+			'1h40 less load than by this point last week'
 		]);
 	});
 
