@@ -28,7 +28,8 @@
 	const needsLogin = $derived(app.sync.kind === 'needs-login');
 
 	const href = (d: Destination) => resolve(d.path);
-	const isHere = (d: Destination) => path === href(d);
+	const isHere = (d: Destination) =>
+		path === href(d) || (d.path !== '/' && path.startsWith(`${href(d)}/`));
 	const tabs = DESTINATIONS.filter((d) => d.tab);
 	const moreHere = $derived(
 		path === resolve('/more') || DESTINATIONS.some((d) => !d.tab && isHere(d))

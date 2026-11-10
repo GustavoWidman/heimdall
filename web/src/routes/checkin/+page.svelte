@@ -1,5 +1,8 @@
 <script lang="ts">
-	import ComingSoon from '#lib/ui/ComingSoon.svelte';
+	import CheckInPage from '#lib/checkin/CheckInPage.svelte';
+	import { useCtx } from '#lib/ui/watch.svelte.ts';
+
+	const { app } = useCtx();
 </script>
 
-<ComingSoon title="check-in" about="how the day felt: strain, sleep, a note. all optional." />
+{#key app.today.day}<CheckInPage day={app.today.day} />{/key}
