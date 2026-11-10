@@ -9,7 +9,7 @@
 	import type { Attachment } from 'svelte/attachments';
 	import type { DayView, Focus, TaskId } from '#lib/app/app.svelte.ts';
 	import { clock, HOUR, MINUTE, minuteOfDay, spent } from './format';
-	import { hueColor } from './hue';
+	import { workPaint } from './hue';
 	import type { Moment } from './watch.svelte';
 
 	let {
@@ -59,11 +59,7 @@
 	function look(f: Focus): Look | null {
 		if (f.k === 'off') return null;
 		if (f.k === 'rest') return { kind: 'rest', paint: null };
-		const hues = f.tasks.map(hueOf);
-		if (hues.length === 1) return { kind: 'one', paint: hueColor(hues[0]) };
-		const w = 4;
-		const stops = hues.map((h, i) => `${hueColor(h)} ${i * w}px ${(i + 1) * w}px`).join(',');
-		return { kind: 'juggle', paint: `repeating-linear-gradient(120deg,${stops})` };
+		return { kind: f.tasks.length === 1 ? 'one' : 'juggle', paint: workPaint(f.tasks.map(hueOf)) };
 	}
 
 	const bars = $derived(
@@ -168,7 +164,7 @@
 		};
 </script>
 
-<section class="ribbon" aria-label="the day so far">
+<section class="ribbon" aria-label={now === null ? 'the day' : 'the day so far'}>
 	<div class="top">
 		<span class="label">bifröst · <b>{label}</b></span>
 		<span class="label">{meta}</span>

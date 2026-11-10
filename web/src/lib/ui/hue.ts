@@ -30,3 +30,11 @@ export function freeHue(tasks: readonly Task[]): number {
 export function hueColor(h: number): string {
 	return `oklch(var(--L) var(--C) ${h})`;
 }
+
+/** The paint for a stretch of work: the task's hue, or a juggle striped with every hue held. */
+export function workPaint(hues: readonly number[]): string {
+	if (hues.length === 1) return hueColor(hues[0]);
+	const w = 4;
+	const stops = hues.map((h, i) => `${hueColor(h)} ${i * w}px ${(i + 1) * w}px`).join(',');
+	return `repeating-linear-gradient(120deg,${stops})`;
+}
