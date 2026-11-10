@@ -13,6 +13,7 @@
 	import Ribbon from '#lib/ui/Ribbon.svelte';
 	import Sheet from '#lib/ui/Sheet.svelte';
 	import { useCtx } from '#lib/ui/watch.svelte.ts';
+	import EndDay from '#lib/today/EndDay.svelte';
 	import FocusCard from '#lib/today/FocusCard.svelte';
 	import ForgotSheet from '#lib/today/ForgotSheet.svelte';
 	import Horizon from '#lib/today/Horizon.svelte';
@@ -128,6 +129,7 @@
 				onedit={(task) => show({ k: 'task', task })}
 				onadd={() => show({ k: 'plan', opening: false })}
 			/>
+			<EndDay />
 		{/if}
 	</div>
 

@@ -1,6 +1,6 @@
 <!--
-	What follows a gesture: "why the switch?" chips for about four seconds, and a gentle
-	note when the task just left is due soon. Both float above the tab bar, so nothing
+	What follows a gesture: "why the switch?" chips for about four seconds, a gentle note
+	when the task just left is due soon, and an undo after ending the day. Both float above the tab bar, so nothing
 	underneath moves and the rest button stays reachable.
 -->
 <script lang="ts">
@@ -8,11 +8,12 @@
 	import { backOut } from 'svelte/easing';
 	import { fly } from 'svelte/transition';
 	import { REASONS, type MarkId, type Reason, type Task } from '#lib/app/app.svelte.ts';
-	import { remaining } from './format';
+	import { clock, remaining } from './format';
 	import { useCtx } from './watch.svelte';
 
 	const ASK_MS = 4000;
 	const NOTE_MS = 5200;
+	const ENDED_MS = 6000;
 
 	const { app, watch } = useCtx();
 
@@ -25,6 +26,8 @@
 
 	let ask: Ask | null = $state(null);
 	let note: { readonly seq: number; readonly task: Task; readonly left: number } | null =
+		$state(null);
+	let ended: { readonly seq: number; readonly mark: MarkId; readonly at: number } | null =
 		$state(null);
 	let paused = $state(false);
 
@@ -54,6 +57,7 @@
 
 	let askTimer: ReturnType<typeof countdown> | null = null;
 	let noteTimer: ReturnType<typeof countdown> | null = null;
+	let endedTimer: ReturnType<typeof countdown> | null = null;
 
 	$effect(() => {
 		const m = watch.moment;
@@ -65,6 +69,11 @@
 				ask = { seq: m.seq, mark: m.mark, hue: entered?.hue ?? null, chosen: null };
 				paused = false;
 				askTimer = countdown(ASK_MS, () => (ask = null));
+			}
+			if (m.kind === 'off') {
+				endedTimer?.cancel();
+				ended = { seq: m.seq, mark: m.mark, at: m.at };
+				endedTimer = countdown(ENDED_MS, () => (ended = null));
 			}
 			if (m.dueSoon) {
 				noteTimer?.cancel();
@@ -85,9 +94,16 @@
 		});
 	}
 
+	function reopen() {
+		if (!ended) return;
+		app.do({ k: 'void', mark: ended.mark, voided: true });
+		endedTimer?.cancel();
+		ended = null;
+	}
+
 	function hold(on: boolean) {
 		paused = on;
-		for (const t of [askTimer, noteTimer]) {
+		for (const t of [askTimer, noteTimer, endedTimer]) {
 			if (on) t?.pause();
 			else t?.resume();
 		}
@@ -115,6 +131,23 @@
 				<i class="dot"></i>
 				<span class="what"><b>{note.task.title}</b> due in <b>{remaining(note.left)}</b></span>
 				<span class="aside">just so you know</span>
+			</div>
+		{/key}
+	{/if}
+	{#if ended}
+		{#key ended.seq}
+			<div
+				class="toast ended"
+				role="status"
+				in:fly={{ y: 14, duration: 420, easing: backOut }}
+				out:fly={{ y: 8, duration: 240 }}
+			>
+				<span class="what"
+					>day ended at <b class="mono">{clock(ended.at, app.settings.timeZone)}</b></span
+				>
+				<span class="aside">see you tomorrow</span>
+				<button class="chip" onclick={reopen}>undo</button>
+				<span class="drain" class:paused style:--ms="{ENDED_MS}ms"></span>
 			</div>
 		{/key}
 	{/if}
@@ -199,6 +232,24 @@
 		margin-left: auto;
 		font-size: 12px;
 		color: var(--ink-3);
+	}
+	.ended {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 8px 8px 8px 16px;
+		font-size: 13.5px;
+	}
+	.ended b {
+		font-weight: 500;
+	}
+	.ended .aside {
+		margin-left: auto;
+		font-size: 12px;
+		color: var(--ink-3);
+	}
+	.ended .chip {
+		padding: 0 16px;
 	}
 	.why .row {
 		display: flex;
