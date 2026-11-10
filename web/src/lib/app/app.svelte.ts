@@ -41,7 +41,19 @@ import { Sync, type SyncEnv, type SyncStatus } from '../replica/sync';
 export type { BoardRow, PlanSuggestions } from '../domain/board';
 export type { CheckIn } from '../domain/checkin';
 export type { Decision, Intent } from '../domain/commands';
-export type { DayView } from '../domain/focus';
+export type { DayView, Segment, Transition, TransitionKind } from '../domain/focus';
+export type {
+	DayKey,
+	Focus,
+	Instant,
+	Mark,
+	MarkId,
+	Reason,
+	Task,
+	TaskId,
+	TaskStatus
+} from '../domain/model';
+export { REASONS } from '../domain/model';
 export type { DaySummary, Insights } from '../domain/stats';
 export type { SyncStatus } from '../replica/sync';
 

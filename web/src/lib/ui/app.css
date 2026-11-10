@@ -1,0 +1,306 @@
+/*
+ * Design tokens. Monochrome ink on warm paper; task hues are the only color.
+ * A task color is oklch(var(--L) var(--C) <hue>), so one hue reads well in both modes.
+ * `data-theme` on <html> overrides the system preference.
+ */
+:root {
+	--bg: #f3f2ee;
+	--panel: #fbfaf7;
+	--panel-2: #efede8;
+	--ink: #161615;
+	--ink-2: #4f4e4a;
+	/* Smallest text; 4.6:1 on --bg. */
+	--ink-3: #6b6a65;
+	/* Decoration only, never text. */
+	--ink-4: #a9a7a1;
+	--rule: rgb(22 22 15 / 0.13);
+	--rule-2: rgb(22 22 15 / 0.065);
+	--blade: #e3e1db;
+	--blade-2: #d9d6cf;
+	--blade-edge: rgb(0 0 0 / 0.2);
+	--scrim: rgb(10 10 10 / 0.32);
+	--L: 0.67;
+	--C: 0.145;
+	/* Hue as text: dark enough for 4.5:1 on --bg. */
+	--L-text: 0.5;
+	--L-soft: 0.93;
+	--C-soft: 0.04;
+	--shadow:
+		0 1px 0 rgb(255 255 255 / 0.7) inset, 0 1px 2px rgb(0 0 0 / 0.04),
+		0 8px 24px -12px rgb(0 0 0 / 0.12);
+	--shadow-float: 0 12px 32px -14px rgb(0 0 0 / 0.35);
+
+	--spring: linear(
+		0,
+		0.157 4.5%,
+		0.512 10%,
+		0.82 15.8%,
+		1.004 21.4%,
+		1.068 25.4%,
+		1.09 29.5%,
+		1.077 34.5%,
+		1.04 41%,
+		1.008 49.4%,
+		0.996 58.6%,
+		1.001 76%,
+		1
+	);
+	--snap: cubic-bezier(0.2, 0.9, 0.25, 1);
+
+	--sans: 'Geist', ui-sans-serif, system-ui, -apple-system, sans-serif;
+	--mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+	--tab-h: 64px;
+	--gutter: 16px;
+	--safe-top: env(safe-area-inset-top, 0px);
+	--safe-bottom: env(safe-area-inset-bottom, 0px);
+
+	color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme='light']) {
+		--bg: #0c0c0d;
+		--panel: #151517;
+		--panel-2: #1b1b1e;
+		--ink: #ecebe6;
+		--ink-2: #b2b0aa;
+		--ink-3: #8f8d87;
+		--ink-4: #4d4c49;
+		--rule: rgb(255 255 255 / 0.12);
+		--rule-2: rgb(255 255 255 / 0.055);
+		--blade: #232326;
+		--blade-2: #2b2b2f;
+		--blade-edge: rgb(255 255 255 / 0.14);
+		--scrim: rgb(0 0 0 / 0.55);
+		--L: 0.75;
+		--C: 0.13;
+		--L-text: 0.8;
+		--L-soft: 0.3;
+		--C-soft: 0.05;
+		--shadow: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 10px 30px -14px rgb(0 0 0 / 0.8);
+		--shadow-float: 0 16px 40px -12px rgb(0 0 0 / 0.9);
+		color-scheme: dark;
+	}
+}
+
+:root[data-theme='dark'] {
+	--bg: #0c0c0d;
+	--panel: #151517;
+	--panel-2: #1b1b1e;
+	--ink: #ecebe6;
+	--ink-2: #b2b0aa;
+	--ink-3: #8f8d87;
+	--ink-4: #4d4c49;
+	--rule: rgb(255 255 255 / 0.12);
+	--rule-2: rgb(255 255 255 / 0.055);
+	--blade: #232326;
+	--blade-2: #2b2b2f;
+	--blade-edge: rgb(255 255 255 / 0.14);
+	--scrim: rgb(0 0 0 / 0.55);
+	--L: 0.75;
+	--C: 0.13;
+	--L-text: 0.8;
+	--L-soft: 0.3;
+	--C-soft: 0.05;
+	--shadow: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 10px 30px -14px rgb(0 0 0 / 0.8);
+	--shadow-float: 0 16px 40px -12px rgb(0 0 0 / 0.9);
+	color-scheme: dark;
+}
+
+@media (min-width: 1000px) {
+	:root {
+		--tab-h: 0px;
+		--gutter: 32px;
+	}
+}
+
+/* Task colors for an element that sets --h. Declared per element so var(--h) resolves there. */
+.hue {
+	--c: oklch(var(--L) var(--C) var(--h));
+	--c-text: oklch(var(--L-text) var(--C) var(--h));
+	--c-soft: oklch(var(--L-soft) var(--C-soft) var(--h));
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
+
+html {
+	background: var(--bg);
+	color: var(--ink);
+	-webkit-text-size-adjust: 100%;
+	text-size-adjust: 100%;
+}
+
+body {
+	min-height: 100dvh;
+	overflow-x: hidden;
+	background: var(--bg);
+	font-family: var(--sans);
+	font-size: 15px;
+	line-height: 1.35;
+	-webkit-font-smoothing: antialiased;
+	-webkit-tap-highlight-color: transparent;
+}
+
+button,
+input,
+textarea,
+select {
+	font: inherit;
+	color: inherit;
+}
+
+button {
+	background: none;
+	border: 0;
+	cursor: pointer;
+	touch-action: manipulation;
+}
+
+a {
+	color: inherit;
+}
+
+:focus-visible {
+	outline: 2px solid var(--ink);
+	outline-offset: 2px;
+	border-radius: 6px;
+}
+
+.mono {
+	font-family: var(--mono);
+	font-variant-numeric: tabular-nums;
+	letter-spacing: -0.01em;
+}
+
+/* The small mono caption used for section heads and meta lines. */
+.label {
+	font-family: var(--mono);
+	font-size: 11px;
+	letter-spacing: 0.05em;
+	color: var(--ink-3);
+	text-transform: lowercase;
+}
+
+.visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+kbd {
+	font-family: var(--mono);
+	font-size: 10.5px;
+	border: 1px solid var(--rule);
+	border-bottom-width: 2px;
+	border-radius: 4px;
+	padding: 0 5px;
+	line-height: 16px;
+	color: var(--ink-2);
+}
+
+/* A pill button; the chip of the why prompt, plan suggestions, and filters. */
+.chip {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	min-height: 44px;
+	min-width: 44px;
+	padding: 0 14px;
+	border-radius: 99px;
+	border: 1px solid var(--rule);
+	font-size: 14px;
+	transition:
+		transform 0.3s var(--spring),
+		background-color 0.2s,
+		color 0.2s;
+}
+
+.chip:active {
+	transform: scale(0.94);
+}
+
+.chip[aria-pressed='true'] {
+	background: var(--ink);
+	color: var(--bg);
+	border-color: var(--ink);
+}
+
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	min-height: 48px;
+	padding: 0 18px;
+	border-radius: 14px;
+	font-weight: 540;
+	transition: transform 0.25s var(--spring);
+}
+
+.btn:active {
+	transform: scale(0.98);
+}
+
+.btn.primary {
+	background: var(--ink);
+	color: var(--bg);
+}
+
+.btn.quiet {
+	border: 1px solid var(--rule);
+}
+
+.field {
+	width: 100%;
+	min-height: 44px;
+	padding: 10px 12px;
+	border-radius: 12px;
+	border: 1px solid var(--rule);
+	background: var(--bg);
+	color: var(--ink);
+	/* 16px keeps iOS Safari from zooming into the field. */
+	font-size: 16px;
+}
+
+.field:focus {
+	outline: none;
+	border-color: var(--ink-3);
+}
+
+.field::placeholder {
+	color: var(--ink-3);
+}
+
+@keyframes breathe {
+	0%,
+	100% {
+		transform: scale(1);
+		opacity: 1;
+	}
+	50% {
+		transform: scale(0.62);
+		opacity: 0.55;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		transition-delay: 0ms !important;
+	}
+}
