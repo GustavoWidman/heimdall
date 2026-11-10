@@ -115,12 +115,20 @@
 		gap: 3px 7px;
 		min-width: 0;
 	}
+	/* Each side of the arrow keeps to one line and its titles ellipsize, so an entry is at
+	   most two lines: what was held, then the arrow and what came next. */
 	.focus {
 		display: inline-flex;
-		flex-wrap: wrap;
 		align-items: center;
-		gap: 3px 5px;
+		gap: 5px;
 		min-width: 0;
+		max-width: 100%;
+	}
+	.to + .focus {
+		max-width: calc(100% - 19px);
+	}
+	.plus {
+		flex: none;
 	}
 	.task {
 		display: inline-flex;
