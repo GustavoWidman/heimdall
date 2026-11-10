@@ -158,11 +158,21 @@ fn app(config: &ServeConfig) -> eyre::Result<Router> {
 }
 
 /// The static SPA. Unknown paths get `index.html` so client routes deep-link, except under
-/// `/_app`, where a missing asset must be a 404 rather than an HTML page.
+/// `/_app`, where a missing asset must be a 404 rather than an HTML page. A `.br` or `.gz`
+/// the build wrote beside a file is sent as it is; anything else is compressed per response.
 fn web(web_dir: &Path) -> Router<AppState> {
-    let spa = ServeDir::new(web_dir).fallback(ServeFile::new(web_dir.join("index.html")));
+    let index = ServeFile::new(web_dir.join("index.html"))
+        .precompressed_br()
+        .precompressed_gzip();
+    let spa = ServeDir::new(web_dir)
+        .precompressed_br()
+        .precompressed_gzip()
+        .fallback(index);
+    let assets = ServeDir::new(web_dir.join("_app"))
+        .precompressed_br()
+        .precompressed_gzip();
     Router::new()
-        .nest_service("/_app", ServeDir::new(web_dir.join("_app")))
+        .nest_service("/_app", assets)
         .fallback_service(spa)
         .layer(middleware::from_fn(cache_control))
         .layer(CompressionLayer::new())

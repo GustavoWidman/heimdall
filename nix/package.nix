@@ -43,21 +43,25 @@
         }
       );
 
-      # The SvelteKit static build (adapter-static output).
+      webFiles = [
+        ../web/package.json
+        ../web/bun.lock
+        ../web/.npmrc
+        ../web/tsconfig.json
+        ../web/vite.config.ts
+        ../web/scripts/compress.ts
+        ../web/src
+        ../web/static
+      ];
+
+      # The SvelteKit static build (adapter-static output), with a .br and .gz beside each
+      # text file for the server to send as they are.
       web = bunLib.mkDerivation {
         pname = "heimdall-web";
         version = (lib.importJSON ../web/package.json).version;
         src = lib.fileset.toSource {
           root = ../web;
-          fileset = lib.fileset.unions [
-            ../web/package.json
-            ../web/bun.lock
-            ../web/.npmrc
-            ../web/tsconfig.json
-            ../web/vite.config.ts
-            ../web/src
-            ../web/static
-          ];
+          fileset = lib.fileset.unions webFiles;
         };
 
         bunDeps = bunLib.fetchBunDeps { bunNix = ../web/.bun.nix; };
@@ -125,16 +129,7 @@
           inherit (web) version bunDeps dontRunLifecycleScripts;
           src = lib.fileset.toSource {
             inherit root;
-            fileset = lib.fileset.unions [
-              ../contract/sync.json
-              ../web/package.json
-              ../web/bun.lock
-              ../web/.npmrc
-              ../web/tsconfig.json
-              ../web/vite.config.ts
-              ../web/src
-              ../web/static
-            ];
+            fileset = lib.fileset.unions ([ ../contract/sync.json ] ++ webFiles);
           };
           sourceRoot = "source/web";
 

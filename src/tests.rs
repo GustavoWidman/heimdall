@@ -589,6 +589,31 @@ async fn compresses_static_files_when_the_client_accepts_it() {
 }
 
 #[tokio::test]
+async fn sends_the_build_s_precompressed_copy_as_it_is() {
+    let server = Server::new();
+    let web = server.root.path().join("web");
+    std::fs::write(web.join("_app/immutable/x.js.br"), b"brotli bytes").unwrap();
+    std::fs::write(web.join("index.html.gz"), b"gzip bytes").unwrap();
+    for (path, encoding, body) in [
+        ("/_app/immutable/x.js", "br", &b"brotli bytes"[..]),
+        ("/history/2026-11-10", "gzip", &b"gzip bytes"[..]),
+    ] {
+        let request = Request::get(path)
+            .header(header::ACCEPT_ENCODING, "gzip, br")
+            .body(Body::empty())
+            .unwrap();
+        let response = server.send(request).await;
+        assert_eq!(response.status(), StatusCode::OK, "{path}");
+        assert_eq!(
+            header_str(&response, header::CONTENT_ENCODING),
+            Some(encoding),
+            "{path}"
+        );
+        assert_eq!(body_bytes(response).await, body, "{path}");
+    }
+}
+
+#[tokio::test]
 async fn hash_password_output_is_accepted_by_the_server() {
     let mut out = Vec::new();
     hash_password("open sesame\r\n".as_bytes(), &mut out).unwrap();
