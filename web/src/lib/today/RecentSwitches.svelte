@@ -60,7 +60,7 @@
 		font-weight: 400;
 	}
 	.forgot {
-		min-height: 36px;
+		min-height: 44px;
 		padding: 0 4px;
 		font-size: 12.5px;
 		color: var(--ink-2);
