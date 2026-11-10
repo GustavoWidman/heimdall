@@ -116,7 +116,7 @@
 			<span class="nm">long-term</span>
 			<span class="hint">a thread that runs across days; offered each morning.</span>
 		</span>
-		<input type="checkbox" switch bind:checked={longRunning} />
+		<input class="toggle-switch" type="checkbox" switch bind:checked={longRunning} />
 	</label>
 
 	<label class="fld">
@@ -206,7 +206,7 @@
 	.swatches {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 4px;
+		gap: 2px;
 	}
 	.swatch {
 		position: relative;
@@ -272,12 +272,6 @@
 	.hint {
 		font-size: 12.5px;
 		color: var(--ink-3);
-	}
-	.toggle input {
-		flex: none;
-		width: 44px;
-		height: 26px;
-		accent-color: var(--ink);
 	}
 	textarea {
 		resize: vertical;

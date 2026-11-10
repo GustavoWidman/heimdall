@@ -66,7 +66,7 @@
 	{#if what !== 'rest'}
 		<label class="fld toggle">
 			<span class="nm">alongside what I held</span>
-			<input type="checkbox" switch bind:checked={alongside} />
+			<input class="toggle-switch" type="checkbox" switch bind:checked={alongside} />
 		</label>
 	{/if}
 
@@ -146,11 +146,6 @@
 		flex-direction: row;
 		align-items: center;
 		justify-content: space-between;
-	}
-	.toggle input {
-		width: 44px;
-		height: 26px;
-		accent-color: var(--ink);
 	}
 	.acts {
 		display: flex;
