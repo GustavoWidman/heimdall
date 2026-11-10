@@ -22,6 +22,7 @@
 			mounted = true;
 			closing = false;
 			dialog.showModal();
+			dialog.scrollTop = 0;
 		} else if (!open && dialog.open && !closing) {
 			closing = true;
 			const done = () => {
