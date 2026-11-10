@@ -14,6 +14,7 @@
 	import Sheet from '#lib/ui/Sheet.svelte';
 	import { useCtx } from '#lib/ui/watch.svelte.ts';
 	import EndDay from '#lib/today/EndDay.svelte';
+	import EveningCheckIn from '#lib/today/EveningCheckIn.svelte';
 	import FocusCard from '#lib/today/FocusCard.svelte';
 	import ForgotSheet from '#lib/today/ForgotSheet.svelte';
 	import Horizon from '#lib/today/Horizon.svelte';
@@ -134,6 +135,7 @@
 	</div>
 
 	<aside class="side">
+		<EveningCheckIn />
 		<section class="why desk" aria-label="why you switched today">
 			<h2 class="label">why you switched today</h2>
 			<div class="bars">
