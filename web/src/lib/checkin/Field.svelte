@@ -196,6 +196,7 @@
 	}
 	.stepper {
 		display: flex;
+		max-width: 320px;
 		align-items: center;
 		gap: 4px;
 	}
