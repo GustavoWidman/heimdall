@@ -4,6 +4,7 @@
 </script>
 
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import { REASONS, type MarkId, type Task } from '#lib/app/app.svelte.ts';
 	import Brand from '#lib/ui/Brand.svelte';
 	import { dayLabel } from '#lib/ui/format.ts';
@@ -56,6 +57,10 @@
 			offeredFor = today.day;
 			show({ k: 'plan', opening: true });
 		}
+	});
+	// Left with the sheet still up, as on a redirect to sign in: offer it again on return.
+	onDestroy(() => {
+		if (open && sheet.k === 'plan') offeredFor = null;
 	});
 
 	function onkeydown(e: KeyboardEvent) {
