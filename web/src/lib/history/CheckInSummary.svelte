@@ -26,7 +26,7 @@
 			value: shown(k, checkIn[k])
 		}))
 	);
-	const href = $derived(`${resolve('/checkin')}/${day}`);
+	const href = $derived(resolve('/checkin/[day]', { day }));
 </script>
 
 <section class="checkin" aria-label="check-in">
