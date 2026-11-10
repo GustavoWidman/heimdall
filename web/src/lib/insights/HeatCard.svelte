@@ -83,14 +83,16 @@
 		<span>more</span>
 	</div>
 
-	<table class="visually-hidden">
-		<caption>Busiest hour for each weekday, average switches in that hour</caption>
-		<tbody>
-			{#each busiest as b, w (w)}
-				<tr><th>{PLURAL[w]}</th><td>{b.v > 0 ? `${hh(b.h)}, ${b.v.toFixed(1)}` : 'none'}</td></tr>
-			{/each}
-		</tbody>
-	</table>
+	<div class="visually-hidden">
+		<table>
+			<caption>Busiest hour for each weekday, average switches in that hour</caption>
+			<tbody>
+				{#each busiest as b, w (w)}
+					<tr><th>{PLURAL[w]}</th><td>{b.v > 0 ? `${hh(b.h)}, ${b.v.toFixed(1)}` : 'none'}</td></tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
 </Card>
 
 <style>

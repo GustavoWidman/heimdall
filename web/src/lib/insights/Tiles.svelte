@@ -12,7 +12,7 @@
 	const base = $derived(data.baseline);
 
 	const medians = $derived(
-		closed.flatMap((p) => (p.stretchMedianMs === null ? [] : [p.stretchMedianMs]))
+		points.flatMap((p) => (p.stretchMedianMs === null ? [] : [p.stretchMedianMs]))
 	);
 	const typicalStretch = $derived.by(() => {
 		if (!medians.length) return null;
@@ -43,7 +43,7 @@
 		<dd class="sub">
 			{base
 				? `switches · most days ${r(base.lo)}–${r(base.hi)}`
-				: `usual range after 5 full days, ${closed.length} here`}
+				: `usual range needs 5 full days, ${closed.length} so far`}
 		</dd>
 	</div>
 	<div>

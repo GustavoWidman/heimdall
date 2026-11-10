@@ -1,6 +1,6 @@
 import type { DayKey, SeriesPoint } from '#lib/app/app.svelte.ts';
 
-/** A round top for a value axis, and the gridlines under it, starting at 0. */
+/** A round top for a count axis, and the whole-number gridlines under it, from 0. */
 export function niceAxis(
 	max: number,
 	lines = 3
@@ -8,7 +8,8 @@ export function niceAxis(
 	if (!(max > 0)) return { max: 1, ticks: [0] };
 	const raw = max / lines;
 	const pow = 10 ** Math.floor(Math.log10(raw));
-	const step = [1, 2, 2.5, 5, 10].map((m) => m * pow).find((s) => s >= raw) ?? 10 * pow;
+	const steps = (pow >= 10 ? [1, 2, 2.5, 5, 10] : [1, 2, 5, 10]).map((m) => m * pow);
+	const step = Math.max(1, steps.find((s) => s >= raw) ?? 10 * pow);
 	const top = Math.ceil(max / step) * step;
 	const ticks: number[] = [];
 	for (let v = 0; v <= top + step / 2; v += step) ticks.push(Math.round(v * 1000) / 1000);

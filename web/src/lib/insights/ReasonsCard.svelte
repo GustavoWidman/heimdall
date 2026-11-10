@@ -115,21 +115,24 @@
 		</div>
 	</div>
 
-	<table class="visually-hidden">
-		<caption>Switches by reason, {weekly ? 'per week' : 'per day'}</caption>
-		<thead>
-			<tr
-				><th>{weekly ? 'week of' : 'day'}</th>{#each ROWS as r (r.key)}<th>{r.label}</th>{/each}</tr
-			>
-		</thead>
-		<tbody>
-			{#each buckets as b (b.key)}
-				<tr>
-					<td>{dayLabel(b.key)}</td>{#each ROWS as r (r.key)}<td>{b.reasons[r.key]}</td>{/each}
-				</tr>
-			{/each}
-		</tbody>
-	</table>
+	<div class="visually-hidden">
+		<table>
+			<caption>Switches by reason, {weekly ? 'per week' : 'per day'}</caption>
+			<thead>
+				<tr
+					><th>{weekly ? 'week of' : 'day'}</th>{#each ROWS as r (r.key)}<th>{r.label}</th
+						>{/each}</tr
+				>
+			</thead>
+			<tbody>
+				{#each buckets as b (b.key)}
+					<tr>
+						<td>{dayLabel(b.key)}</td>{#each ROWS as r (r.key)}<td>{b.reasons[r.key]}</td>{/each}
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
 </Card>
 
 <style>

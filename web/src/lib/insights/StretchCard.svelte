@@ -106,19 +106,21 @@
 		<span><i class="key j-key"></i>juggling share</span>
 	</div>
 
-	<table class="visually-hidden">
-		<caption>Focus stretches per day</caption>
-		<thead><tr><th>day</th><th>typical</th><th>longest</th><th>juggling</th></tr></thead>
-		<tbody>
-			{#each tracked as p (p.day)}
-				<tr>
-					<td>{dayLabel(p.day)}</td><td>{spent(p.stretchMedianMs ?? 0)}</td><td
-						>{spent(p.stretchLongestMs ?? 0)}</td
-					><td>{Math.round(share(p) * 100)}%</td>
-				</tr>
-			{/each}
-		</tbody>
-	</table>
+	<div class="visually-hidden">
+		<table>
+			<caption>Focus stretches per day</caption>
+			<thead><tr><th>day</th><th>typical</th><th>longest</th><th>juggling</th></tr></thead>
+			<tbody>
+				{#each tracked as p (p.day)}
+					<tr>
+						<td>{dayLabel(p.day)}</td><td>{spent(p.stretchMedianMs ?? 0)}</td><td
+							>{spent(p.stretchLongestMs ?? 0)}</td
+						><td>{Math.round(share(p) * 100)}%</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
 </Card>
 
 <style>

@@ -111,15 +111,17 @@
 		<span><i class="sw today"></i>today, so far</span>
 	</div>
 
-	<table class="visually-hidden">
-		<caption>Switches per day</caption>
-		<thead><tr><th>day</th><th>switches</th></tr></thead>
-		<tbody>
-			{#each tracked as p (p.day)}
-				<tr><td>{dayLabel(p.day)}</td><td>{p.switches}</td></tr>
-			{/each}
-		</tbody>
-	</table>
+	<div class="visually-hidden">
+		<table>
+			<caption>Switches per day</caption>
+			<thead><tr><th>day</th><th>switches</th></tr></thead>
+			<tbody>
+				{#each tracked as p (p.day)}
+					<tr><td>{dayLabel(p.day)}</td><td>{p.switches}</td></tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
 </Card>
 
 <style>

@@ -30,7 +30,7 @@
 	const H = SW + GAP + ACHE + GAP + SCALE;
 
 	const points = $derived(data.series);
-	const axis = $derived(niceAxis(Math.max(...points.map((p) => p.switches), 4), 2));
+	const axis = $derived(niceAxis(Math.max(...points.map((p) => p.switches), 4), 3));
 	const answered = $derived(points.filter((p) => p.strain !== null || p.stress !== null));
 	const tracked = $derived(points.filter((p) => p.tracked).length);
 	const point = $derived(selected ? points.find((p) => p.day === selected) : undefined);
@@ -118,23 +118,26 @@
 		<span><i class="key ache-key"></i>headache, larger when worse</span>
 	</div>
 
-	<table class="visually-hidden">
-		<caption
-			>Switches, strain, stress, and headache on days with a check-in, out of {tracked} tracked days</caption
-		>
-		<thead
-			><tr><th>day</th><th>switches</th><th>strain</th><th>stress</th><th>headache</th></tr></thead
-		>
-		<tbody>
-			{#each answered as p (p.day)}
-				<tr>
-					<td>{dayLabel(p.day)}</td><td>{p.switches}</td><td>{p.strain ?? ''}</td><td
-						>{p.stress ?? ''}</td
-					><td>{p.headache === null ? '' : ACHES[p.headache]}</td>
-				</tr>
-			{/each}
-		</tbody>
-	</table>
+	<div class="visually-hidden">
+		<table>
+			<caption
+				>Switches, strain, stress, and headache on days with a check-in, out of {tracked} tracked days</caption
+			>
+			<thead
+				><tr><th>day</th><th>switches</th><th>strain</th><th>stress</th><th>headache</th></tr
+				></thead
+			>
+			<tbody>
+				{#each answered as p (p.day)}
+					<tr>
+						<td>{dayLabel(p.day)}</td><td>{p.switches}</td><td>{p.strain ?? ''}</td><td
+							>{p.stress ?? ''}</td
+						><td>{p.headache === null ? '' : ACHES[p.headache]}</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
 </Card>
 
 <style>

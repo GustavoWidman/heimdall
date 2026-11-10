@@ -16,6 +16,8 @@ describe('niceAxis', () => {
 		expect(niceAxis(37)).toEqual({ max: 40, ticks: [0, 20, 40] });
 		expect(niceAxis(9)).toEqual({ max: 10, ticks: [0, 5, 10] });
 		expect(niceAxis(4)).toEqual({ max: 4, ticks: [0, 2, 4] });
+		expect(niceAxis(7)).toEqual({ max: 10, ticks: [0, 5, 10] });
+		expect(niceAxis(2)).toEqual({ max: 2, ticks: [0, 1, 2] });
 		expect(niceAxis(120)).toEqual({ max: 150, ticks: [0, 50, 100, 150] });
 	});
 
