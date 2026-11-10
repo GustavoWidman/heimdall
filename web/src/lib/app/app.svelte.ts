@@ -56,7 +56,14 @@ export type {
 } from '../domain/model';
 export { REASONS, dayKey } from '../domain/model';
 export { addDays } from '../domain/time';
-export type { DaySummary, Insights } from '../domain/stats';
+export type {
+	Baseline,
+	DaySummary,
+	DeadlinePressure,
+	Insights,
+	SeriesPoint,
+	TaskTotals
+} from '../domain/stats';
 export type { SyncStatus } from '../replica/sync';
 
 /** A day ready to show: its timeline, board, check-in, and every mark for the edit list. */
@@ -362,7 +369,13 @@ export class App {
 	/** Insights over the last `days` days, today included. */
 	async insights(days: number): Promise<Insights> {
 		const today = this.#todayKey;
-		return insights(await this.range(addDays(today, 1 - days), today));
+		const summaries = await this.range(addDays(today, 1 - days), today);
+		return insights(summaries, {
+			settings: this.settings,
+			tasks: this.tasks,
+			today,
+			now: this.#now() as Instant
+		});
 	}
 
 	/** The only write. The views above see the change before the next paint. */
