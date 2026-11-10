@@ -27,6 +27,7 @@
 		"@sveltejs/kit": "^3.0.0",
 		"@sveltejs/vite-plugin-svelte": "^7.2.0",
 		"@types/node": "^26.6.6",
+		"axe-core": "^4.14.0",
 		"fake-indexeddb": "^6.2.8",
 		"fast-check": "^4.10.2",
 		"prettier": "^3.8.3",

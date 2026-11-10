@@ -29,6 +29,22 @@
               ${bun2nix.packages.${system}.default}/bin/bun2nix --lock-file "$lock" --output-file .bun.nix
             '';
           }
+          {
+            name = "e2e";
+            help = "build the server and the web app, then run the end-to-end suite on a phone and a desktop";
+            # Playwright downloads its own browsers on first use; the suite stays out of
+            # `nix flake check`, whose sandbox has none.
+            command = ''
+              set -eu
+              cd "$PRJ_ROOT"
+              cargo build --release
+              cd web
+              bun install --frozen-lockfile
+              bun run build
+              bunx playwright install chromium webkit
+              bunx playwright test "$@"
+            '';
+          }
         ];
       };
     };
