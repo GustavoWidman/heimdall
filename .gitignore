@@ -1,0 +1,20 @@
+# rust
+/target
+
+# nix
+/result
+/result-*
+.direnv
+
+# web
+node_modules
+/web/build
+/web/.svelte-kit
+/web/test-results
+/web/playwright-report
+
+# local data
+*.db
+*.db-shm
+*.db-wal
+/config.toml
