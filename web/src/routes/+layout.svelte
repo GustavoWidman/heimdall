@@ -11,6 +11,19 @@
 	let { children }: LayoutProps = $props();
 
 	const opening = openApp();
+	void opening.then(askToPersist);
+
+	/** Asks once, on the first run, that the browser never evict the local data. */
+	async function askToPersist() {
+		const KEY = 'heimdall.persist-asked';
+		try {
+			if (!navigator.storage?.persist || localStorage.getItem(KEY)) return;
+			localStorage.setItem(KEY, '1');
+			if (!(await navigator.storage.persisted())) await navigator.storage.persist();
+		} catch {
+			// Storage the browser refuses to promise is still storage; the app works the same.
+		}
+	}
 </script>
 
 <svelte:head>
