@@ -86,3 +86,11 @@ test('questions speak lowercase, and of the day being answered', async ({ page }
 	expect(past.length).toBe(today.length);
 	expect(past.filter((q) => /\b(today|right now|this evening|last night)\b/i.test(q))).toEqual([]);
 });
+
+test('the summary line says a note was written without repeating the word', async ({ page }) => {
+	await open(page, '/checkin');
+	await openMore(page);
+	await page.getByRole('textbox', { name: /anything else worth remembering/i }).fill('long day');
+	await expect(page.getByText(/note written/)).toBeVisible();
+	await expect(page.getByRole('main')).not.toContainText('note a note');
+});
