@@ -92,7 +92,12 @@ export const test = base.extend<Options & Fixtures, { hashFile: string }>({
 			}
 			const page = await context.newPage();
 			const n = contexts.length;
-			page.on('pageerror', (e) => errors.push(`device ${n} pageerror: ${e.message}`));
+			page.on('pageerror', (e) => {
+				// WebKit reports a request the next navigation cancels as a page error, though
+				// the sync loop catches the rejection.
+				if (/due to access control checks/.test(e.message)) return;
+				errors.push(`device ${n} pageerror: ${e.message}`);
+			});
 			page.on('console', (m) => {
 				if (m.type() !== 'error') return;
 				if (networkErrorsOk && NETWORK.test(m.text())) return;
