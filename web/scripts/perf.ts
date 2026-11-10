@@ -5,7 +5,7 @@
  *
  *   bun scripts/perf.ts [--runs 5] [--taps 60] [--out results.json]
  *     [--only bytes,cold,warm,idle,tap,heavy,server] [--build label=webDir[@serverBin]]...
- *     [--profile dir]
+ *     [--engines chromium-4x,webkit] [--profile dir]
  *
  * Sections:
  *   bytes   JS, CSS, and fonts each route loads cold, as transfer sizes the server sends
@@ -54,6 +54,7 @@ function args() {
 		runs: Number(get('--runs') ?? 5),
 		taps: Number(get('--taps') ?? 60),
 		out: get('--out') ?? join(tmpdir(), `heimdall-perf-${Date.now()}.json`),
+		engines: get('--engines')?.split(','),
 		/** A directory for CPU profiles of one extra, unreported Chromium pass. */
 		profile: get('--profile'),
 		only: new Set((get('--only')?.split(',') ?? SECTIONS) as Section[]),
@@ -366,10 +367,10 @@ export async function idb(page: Page, action: { count?: string[]; clear?: string
 				(ok, no) => ((r.onsuccess = () => ok(r.result)), (r.onerror = () => no(r.error)))
 			);
 		const out: Record<string, number> = {};
-		for (const s of count) out[s] = await req(db.transaction(s).objectStore(s).count());
 		const meta = (await req(db.transaction('meta').objectStore('meta').get('meta'))) as
 			{ cursor?: number } | undefined;
 		out.cursor = meta?.cursor ?? 0;
+		for (const s of count) out[s] = await req(db.transaction(s).objectStore(s).count());
 		if (clear) {
 			const tx = db.transaction(clear, 'readwrite');
 			tx.objectStore(clear).clear();
@@ -601,7 +602,7 @@ export async function measureTap(ctx: BrowserContext, t: Target, e: Engine, run:
 }
 
 /** Today left alone: what it keeps doing per second, in requests and main-thread time. */
-async function measureIdle(ctx: BrowserContext, t: Target, e: Engine, run: number) {
+export async function measureIdle(ctx: BrowserContext, t: Target, e: Engine, run: number) {
 	const w = await tab(e, ctx);
 	const { page } = w;
 	await page.goto('/');
@@ -636,7 +637,7 @@ async function measureIdle(ctx: BrowserContext, t: Target, e: Engine, run: numbe
 	await page.close();
 }
 
-async function measureHeavy(ctx: BrowserContext, t: Target, e: Engine, run: number) {
+export async function measureHeavy(ctx: BrowserContext, t: Target, e: Engine, run: number) {
 	const w = await tab(e, ctx);
 	const { page } = w;
 	await page.goto('/');
@@ -881,16 +882,19 @@ async function main() {
 		fn: (ctx: BrowserContext, t: Target) => Promise<void>
 	) =>
 		each(seed.ops, async (t) => {
-			const p = await primed(t, e, browser);
+			// A browser of its own: WebKit's storage process outlives a closed context, and
+			// work one build queued there would otherwise land in the next build's numbers.
+			const own: Launched = await e.type.launch();
+			const p = await primed(t, e, own);
 			((R(t.build.label).prime ??= {})[e.name] ??= []).push({ pullMs: p.pullMs, marks: p.marks });
 			try {
 				await fn(p.ctx, t);
 			} finally {
-				await p.ctx.close();
+				await own.close();
 			}
 		});
 
-	for (const e of ENGINES) {
+	for (const e of ENGINES.filter((x) => !opt.engines || opt.engines.includes(x.name))) {
 		if (!['bytes', 'cold', 'warm', 'idle', 'tap', 'heavy'].some((s) => opt.only.has(s as Section)))
 			break;
 		const browser: Launched = await e.type.launch();
