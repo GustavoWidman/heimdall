@@ -1,0 +1,21 @@
+{
+	"default": { "js": 75, "css": 8 },
+	"routes": {
+		"/": { "js": 85, "css": 12 },
+		"/checkin": { "js": 71, "css": 7 },
+		"/checkin/[day]": { "js": 71, "css": 7 },
+		"/history": { "js": 78, "css": 9 },
+		"/history/[day]": { "js": 78, "css": 9 },
+		"/insights": { "js": 80, "css": 9 },
+		"/login": { "js": 68, "css": 6 },
+		"/month": { "js": 72, "css": 7 },
+		"/month/[key]": { "js": 72, "css": 7 },
+		"/more": { "js": 68, "css": 6 },
+		"/settings": { "js": 70, "css": 7 },
+		"/tasks": { "js": 72, "css": 8 },
+		"/week": { "js": 73, "css": 7 },
+		"/week/[key]": { "js": 73, "css": 7 },
+		"/year": { "js": 73, "css": 7 },
+		"/year/[key]": { "js": 73, "css": 7 }
+	}
+}

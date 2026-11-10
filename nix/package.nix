@@ -143,6 +143,32 @@
           installPhase = "touch $out";
           dontFixup = true;
         };
+
+        # Fails when a route's JS or CSS outgrows its line in web/perf-budget.json.
+        heimdall-web-budget = bunLib.mkDerivation {
+          pname = "heimdall-web-budget";
+          inherit (web) version bunDeps dontRunLifecycleScripts;
+          src = lib.fileset.toSource {
+            root = ../web;
+            fileset = lib.fileset.unions (
+              webFiles
+              ++ [
+                ../web/scripts/budget.ts
+                ../web/perf-budget.json
+              ]
+            );
+          };
+
+          buildPhase = ''
+            runHook preBuild
+            bun --bun run build
+            bun --bun scripts/budget.ts
+            runHook postBuild
+          '';
+
+          installPhase = "touch $out";
+          dontFixup = true;
+        };
       };
     };
 }
