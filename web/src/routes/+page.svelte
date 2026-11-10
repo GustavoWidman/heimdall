@@ -4,7 +4,7 @@
 </script>
 
 <script lang="ts">
-	import { onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { REASONS, type MarkId, type Task } from '#lib/app/app.svelte.ts';
 	import Brand from '#lib/ui/Brand.svelte';
 	import { dayLabel } from '#lib/ui/format.ts';
@@ -54,8 +54,21 @@
 	}
 	const close = () => (open = false);
 
+	// Another device may already have planned the day. Offer once this one has heard from the
+	// server or cannot reach it; a tab that does not run the sync stops waiting after a beat.
+	const heard = $derived(
+		app.sync.kind === 'offline' ||
+			app.sync.kind === 'needs-login' ||
+			(app.sync.kind === 'idle' && app.sync.lastOk !== null)
+	);
+	let waited = $state(false);
+	onMount(() => {
+		const id = setTimeout(() => (waited = true), 1500);
+		return () => clearTimeout(id);
+	});
+
 	$effect(() => {
-		if (today.board.length === 0 && offeredFor !== today.day) {
+		if (today.board.length === 0 && offeredFor !== today.day && (heard || waited)) {
 			offeredFor = today.day;
 			show({ k: 'plan', opening: true });
 		}
