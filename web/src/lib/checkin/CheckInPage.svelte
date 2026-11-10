@@ -199,7 +199,7 @@
 		animation: appear 0.3s var(--snap);
 	}
 	.summary .k {
-		color: var(--ink-4);
+		color: var(--ink-3);
 	}
 	.fold {
 		display: flex;

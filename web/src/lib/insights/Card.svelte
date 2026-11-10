@@ -42,7 +42,6 @@
 	}
 	.meta {
 		color: var(--ink-3);
-		opacity: 0.85;
 	}
 
 	/* Chart chrome shared by every card. */

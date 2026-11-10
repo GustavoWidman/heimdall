@@ -182,8 +182,17 @@
 		text-decoration: line-through;
 		text-decoration-color: var(--ink-3);
 	}
+	/* Quiet and voided entries step back in color, not opacity, so their text stays legible. */
 	li.voided,
-	li.quiet {
+	li.quiet,
+	li.voided .t,
+	li.quiet .t,
+	li.voided .why,
+	li.quiet .why {
+		color: var(--ink-3);
+	}
+	li.voided .task i,
+	li.quiet .task i {
 		opacity: 0.5;
 	}
 	li.voided .task i {
