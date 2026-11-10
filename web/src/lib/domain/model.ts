@@ -107,8 +107,8 @@ export type Focus =
 	| { readonly k: 'rest' }
 	| { readonly k: 'working'; readonly tasks: TaskSet };
 
-export const OFF: Focus = { k: 'off' };
-export const REST: Focus = { k: 'rest' };
+export const OFF = { k: 'off' } as const satisfies Focus;
+export const REST = { k: 'rest' } as const satisfies Focus;
 
 export function sameFocus(a: Focus, b: Focus): boolean {
 	if (a.k === 'working' && b.k === 'working') return TaskSet.equals(a.tasks, b.tasks);
