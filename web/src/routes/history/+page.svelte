@@ -1,5 +1,5 @@
 <script lang="ts">
-	import ComingSoon from '#lib/ui/ComingSoon.svelte';
+	import HistoryScreen from '#lib/history/HistoryScreen.svelte';
 </script>
 
-<ComingSoon title="history" about="every past day, switch by switch, to look back on or fix." />
+<HistoryScreen asked={null} />
