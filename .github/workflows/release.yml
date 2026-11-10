@@ -61,7 +61,6 @@ jobs:
           : "${NIKS3_AUTH_TOKEN_SCRIPT:?cache discovery gave no OIDC token command}"
           "$NIKS3_BIN" pins list --server-url https://cache.r3dlust.com \
             --auth-token-script "$NIKS3_AUTH_TOKEN_SCRIPT" --json > /dev/null
-      - uses: DeterminateSystems/magic-nix-cache-action@main
       - run: nix build .#heimdall --print-build-logs
       - name: Publish and pin heimdall
         env:
