@@ -4,6 +4,8 @@
 	import geist from '@fontsource-variable/geist/files/geist-latin-wght-normal.woff2?url';
 	import geistMono from '@fontsource-variable/geist-mono/files/geist-mono-latin-wght-normal.woff2?url';
 	import favicon from '#lib/assets/favicon.svg';
+	import { preloadCode } from '$app/navigation';
+	import type { RouteId } from '$app/types';
 	import { openApp } from '#lib/app/app.svelte.ts';
 	import Shell from '#lib/ui/Shell.svelte';
 	import type { LayoutProps } from './$types';
@@ -12,6 +14,37 @@
 
 	const opening = openApp();
 	void opening.then(askToPersist);
+	void opening.then(preloadScreens);
+
+	const SCREENS: RouteId[] = [
+		'/',
+		'/history/[day]',
+		'/week/[key]',
+		'/month/[key]',
+		'/year/[key]',
+		'/insights',
+		'/checkin/[day]',
+		'/checkin',
+		'/tasks',
+		'/settings',
+		'/more',
+		'/history',
+		'/week',
+		'/month',
+		'/year'
+	];
+
+	/**
+	 * Imports every screen's code once the first screen is up and the main thread is free.
+	 * The browser puts an idle service worker to sleep, and waking it to serve a screen's
+	 * first chunk stalls that navigation; loaded now, the chunk is already in memory.
+	 */
+	function preloadScreens() {
+		const later = window.requestIdleCallback ?? ((run: () => void) => setTimeout(run, 1000));
+		later(() => {
+			for (const id of SCREENS) void preloadCode(id).catch(() => {});
+		});
+	}
 
 	/** Asks once, on the first run, that the browser never evict the local data. */
 	async function askToPersist() {
