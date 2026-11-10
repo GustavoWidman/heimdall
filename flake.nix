@@ -30,6 +30,7 @@
         devshell.flakeModule
         (import ./nix/shell.nix inputs)
         (import ./nix/package.nix inputs)
+        (import ./nix/module.nix inputs)
       ];
     };
 }
