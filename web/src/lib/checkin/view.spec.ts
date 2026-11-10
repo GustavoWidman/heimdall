@@ -24,11 +24,11 @@ describe('check-in form layout', () => {
 });
 
 describe('reading answers back', () => {
-	it('uses the chip label, the unit, or a note', () => {
+	it('uses the chip label, the unit, or says a note was written', () => {
 		expect(answerLabel('mood', 4)).toBe('good');
 		expect(answerLabel('cried', 2)).toBe('2+');
 		expect(answerLabel('sleepHours', 7.5)).toBe('7.5h');
-		expect(answerLabel('note', 'long day')).toBe('a note');
+		expect(answerLabel('note', 'long day')).toBe('written');
 	});
 
 	it('says nothing for a blank day', () => {

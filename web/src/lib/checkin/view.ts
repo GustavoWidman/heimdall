@@ -19,7 +19,7 @@ export function fieldName(key: CheckInKey): string {
 	return key.replace(/[A-Z]/g, (c) => ` ${c.toLowerCase()}`);
 }
 
-/** How a stored answer reads back: its chip label, `7.5h`, or `a note`. */
+/** How a stored answer reads back after the field's name: its chip label, `7.5h`, or `written`. */
 export function answerLabel(key: CheckInKey, value: unknown): string {
 	const d = def(key);
 	switch (d.kind) {
@@ -31,7 +31,7 @@ export function answerLabel(key: CheckInKey, value: unknown): string {
 		case 'number':
 			return `${value}${d.unit}`;
 		case 'text':
-			return 'a note';
+			return 'written';
 	}
 }
 
