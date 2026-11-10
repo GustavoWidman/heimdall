@@ -134,6 +134,8 @@ export class App {
 	readonly #timers: NonNullable<AppDeps['timers']>;
 	readonly #loaded = new SvelteSet<string>();
 	readonly #loading = new Map<string, Promise<void>>();
+	/** Recomputations in flight, so views asking for the same stale days share one pass. */
+	readonly #recomputing = new Map<string, Promise<DayAggregate[]>>();
 	readonly #stop: (() => void)[] = [];
 	#status = $state<SyncStatus>({ kind: 'idle', lastOk: null });
 	#minute = $state(0);
@@ -329,7 +331,7 @@ export class App {
 			if (row && row.basis === basis) byDay.set(d, row);
 			else stale.push(d);
 		});
-		for (const agg of await this.#recompute(stale, s)) byDay.set(agg.day, agg);
+		for (const agg of await this.#recomputeOnce(stale, s)) byDay.set(agg.day, agg);
 		if (days.at(-1) === today) {
 			byDay.set(today, aggregateDay(this.today.view, s, this.#now() as Instant));
 		}
@@ -341,6 +343,17 @@ export class App {
 			const agg = byDay.get(d);
 			return agg ? [{ agg, checkIn: checkInByDay.get(d) ?? {} }] : [];
 		});
+	}
+
+	#recomputeOnce(days: readonly DayKey[], s: Settings): Promise<DayAggregate[]> {
+		if (days.length === 0) return Promise.resolve([]);
+		const key = `${basisOf(s)}|${days.join()}`;
+		let p = this.#recomputing.get(key);
+		if (!p) {
+			p = this.#recompute(days, s).finally(() => this.#recomputing.delete(key));
+			this.#recomputing.set(key, p);
+		}
+		return p;
 	}
 
 	async #recompute(days: readonly DayKey[], s: Settings): Promise<DayAggregate[]> {
