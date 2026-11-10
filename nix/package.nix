@@ -118,6 +118,36 @@
           }
         );
         heimdall-fmt = craneLib.cargoFmt { inherit (args) src; };
+
+        # Type check and unit tests. The tests read contract/sync.json beside web/.
+        heimdall-web-test = bunLib.mkDerivation {
+          pname = "heimdall-web-test";
+          inherit (web) version bunDeps dontRunLifecycleScripts;
+          src = lib.fileset.toSource {
+            inherit root;
+            fileset = lib.fileset.unions [
+              ../contract/sync.json
+              ../web/package.json
+              ../web/bun.lock
+              ../web/.npmrc
+              ../web/tsconfig.json
+              ../web/vite.config.ts
+              ../web/src
+              ../web/static
+            ];
+          };
+          sourceRoot = "source/web";
+
+          buildPhase = ''
+            runHook preBuild
+            bun --bun run check
+            bun --bun run test:unit --run
+            runHook postBuild
+          '';
+
+          installPhase = "touch $out";
+          dontFixup = true;
+        };
       };
     };
 }
