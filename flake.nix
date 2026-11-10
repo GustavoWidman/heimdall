@@ -11,6 +11,10 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
     systems.url = "github:nix-systems/default";
     devshell.url = "github:numtide/devshell";
+    bun2nix = {
+      url = "github:baileyluTCD/bun2nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -25,6 +29,7 @@
       imports = [
         devshell.flakeModule
         (import ./nix/shell.nix inputs)
+        (import ./nix/package.nix inputs)
       ];
     };
 }
