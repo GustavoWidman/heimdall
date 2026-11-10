@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	TaskSet,
 	type DayKey,
+	type BounceMinutes,
 	type DayStartHour,
 	type Focus,
 	type Gesture,
@@ -82,7 +83,8 @@ describe('the switching table', () => {
 
 const settings: Settings = {
 	timeZone: 'America/Sao_Paulo' as TimeZone,
-	dayStartHour: 4 as DayStartHour
+	dayStartHour: 4 as DayStartHour,
+	bounceMinutes: 0 as BounceMinutes
 };
 const DAY = '2026-11-09' as DayKey;
 const MIN = 60_000;
@@ -322,6 +324,120 @@ describe('a live day with focus carried in', () => {
 			mark: null
 		});
 		expect(liveTotals(view, (range.start + 30 * MIN) as Instant).focusMs).toBe(30 * MIN);
+	});
+});
+
+describe('quick taps read as a juggle', () => {
+	const x = 't_x' as TaskId;
+	const y = 't_y' as TaskId;
+	const BOUNCE = 5 * MIN;
+	const day = (marks: readonly Mark[], live = false, bounce = BOUNCE) => {
+		const range = rangeOf(DAY, settings);
+		return deriveDay(marks, range, carryIn(marks, range.start, bounce), live, bounce);
+	};
+	const spans = (marks: readonly Mark[]) =>
+		day(marks)
+			.segments.filter((s) => s.focus.k === 'working')
+			.map((s) => [s.start, s.end, s.focus]);
+
+	it('keeps the task left behind held through a glance away and back', () => {
+		const marks = [
+			mark(at('09:00'), tap(x)),
+			mark(at('09:30'), tap(a)),
+			mark(at('09:32'), tap(x)),
+			mark(at('09:52'), offG)
+		];
+		const v = day(marks);
+		expect(v.transitions.map((t) => t.kind)).toEqual(['start', 'switch', 'narrow', 'off']);
+		expect(spans(marks)).toEqual([
+			[at('09:00'), at('09:30'), focusOf(x)],
+			[at('09:30'), at('09:32'), focusOf(x, a)],
+			[at('09:32'), at('09:52'), focusOf(x)]
+		]);
+		expect(v.totals).toMatchObject({ juggleMs: 2 * MIN, loadMs: 54 * MIN });
+	});
+
+	it('switches to a new task the glance led to', () => {
+		const marks = [
+			mark(at('09:00'), tap(x)),
+			mark(at('09:30'), tap(a)),
+			mark(at('09:32'), tap(y)),
+			mark(at('09:52'), offG)
+		];
+		expect(day(marks).transitions.map((t) => t.kind)).toEqual(['start', 'switch', 'switch', 'off']);
+		expect(spans(marks)[1]).toEqual([at('09:30'), at('09:32'), focusOf(x, a)]);
+		expect(spans(marks)[2]).toEqual([at('09:32'), at('09:52'), focusOf(y)]);
+	});
+
+	it('grows the juggle as quick taps add tasks, then narrows to the one that stays', () => {
+		const marks = [
+			mark(at('09:00'), tap(a)),
+			mark(at('09:02'), tap(b)),
+			mark(at('09:05'), tap(c)),
+			mark(at('09:09'), tap(b)),
+			mark(at('09:19'), offG)
+		];
+		const v = day(marks);
+		expect(v.transitions.map((t) => t.kind)).toEqual([
+			'start',
+			'switch',
+			'switch',
+			'narrow',
+			'off'
+		]);
+		expect(spans(marks).map((s) => s[2])).toEqual([
+			focusOf(a),
+			focusOf(a, b),
+			focusOf(a, b, c),
+			focusOf(b)
+		]);
+		expect(v.totals).toMatchObject({ focusMs: 19 * MIN, juggleMs: 7 * MIN, loadMs: 30 * MIN });
+	});
+
+	it('counts bouncing inside a quick juggle once', () => {
+		const marks = [
+			mark(at('09:00'), tap(a)),
+			mark(at('09:30'), tap(b)),
+			mark(at('09:31'), tap(a)),
+			mark(at('09:32'), tap(b)),
+			mark(at('09:33'), tap(a)),
+			mark(at('10:00'), offG)
+		];
+		const v = day(marks);
+		expect(v.switches).toBe(1);
+		expect(v.transitions.map((t) => t.kind)).toEqual([
+			'start',
+			'switch',
+			'none',
+			'none',
+			'narrow',
+			'off'
+		]);
+	});
+
+	it('lets a repeat tap continue the stay it repeats', () => {
+		const marks = [
+			mark(at('09:00'), tap(a)),
+			mark(at('09:30'), tap(b)),
+			mark(at('09:31'), tap(b)),
+			mark(at('10:00'), tap(c)),
+			mark(at('10:30'), offG)
+		];
+		expect(day(marks).totals.juggleMs).toBe(0);
+	});
+
+	it('reads every tap as given with no bounce window', () => {
+		const marks = [mark(at('09:00'), tap(a)), mark(at('09:30'), tap(b)), mark(at('09:32'), tap(a))];
+		expect(day(marks, false, 0).switches).toBe(2);
+	});
+
+	it('reads the latest tap of a live day as given until the next mark comes', () => {
+		const glance = [mark(at('09:00'), tap(a)), mark(at('09:30'), tap(b))];
+		expect(day(glance, true).tail?.focus).toEqual(focusOf(b));
+		const back = day([...glance, mark(at('09:32'), tap(a))], true);
+		expect(back.switches).toBe(1);
+		expect(back.segments.at(-1)?.focus).toEqual(focusOf(a, b));
+		expect(back.tail?.focus).toEqual(focusOf(a));
 	});
 });
 

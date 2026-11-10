@@ -8,6 +8,7 @@ import {
 import {
 	dayKey,
 	dayStartHour,
+	bounceMinutes,
 	gesture,
 	hue,
 	instant,
@@ -20,6 +21,7 @@ import {
 	type Brand,
 	type DayKey,
 	type DayStartHour,
+	type BounceMinutes,
 	type Gesture,
 	type Hue,
 	type Instant,
@@ -57,7 +59,7 @@ export type Fields = {
 	mark: { at: Instant; gesture: Gesture; voided: boolean; reason: Reason | null };
 	plan: { on: boolean; rank: string };
 	checkin: { [K in CheckInKey]: CheckInValue<K> | null };
-	settings: { timeZone: TimeZone; dayStartHour: DayStartHour };
+	settings: { timeZone: TimeZone; dayStartHour: DayStartHour; bounceMinutes: BounceMinutes };
 };
 
 export type Kind = keyof Fields;
@@ -102,7 +104,11 @@ export const SCHEMA: {
 	mark: { at: req(instant), gesture: req(gesture), voided: bool, reason: orNull(reason) },
 	plan: { on: bool, rank },
 	checkin: checkinCodecs,
-	settings: { timeZone: req(timeZone), dayStartHour: req(dayStartHour) }
+	settings: {
+		timeZone: req(timeZone),
+		dayStartHour: req(dayStartHour),
+		bounceMinutes: req(bounceMinutes)
+	}
 };
 
 export const KINDS = Object.keys(SCHEMA) as Kind[];

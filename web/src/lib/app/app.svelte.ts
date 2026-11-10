@@ -12,6 +12,8 @@ import {
 } from '../domain/focus';
 import {
 	DEFAULT_DAY_START_HOUR,
+	DEFAULT_BOUNCE_MINUTES,
+	bounceMs,
 	timeZone,
 	type DayKey,
 	type Instant,
@@ -146,7 +148,8 @@ export class App {
 		const s = rec ? parseEntity('settings', rec) : null;
 		return {
 			timeZone: s?.timeZone ?? timeZone(this.#deps.deviceZone) ?? ('UTC' as TimeZone),
-			dayStartHour: s?.dayStartHour ?? DEFAULT_DAY_START_HOUR
+			dayStartHour: s?.dayStartHour ?? DEFAULT_DAY_START_HOUR,
+			bounceMinutes: s?.bounceMinutes ?? DEFAULT_BOUNCE_MINUTES
 		};
 	});
 
@@ -289,7 +292,8 @@ export class App {
 		const range = rangeOf(day, this.settings);
 		const all = this.#marks;
 		const inWindow = all.filter((m) => m.at >= range.start - CARRY_LOOKBACK_MS && m.at < range.end);
-		const view = deriveDay(inWindow, range, carryIn(inWindow, range.start), live);
+		const bounce = bounceMs(this.settings);
+		const view = deriveDay(inWindow, range, carryIn(inWindow, range.start, bounce), live, bounce);
 		void this.#minute;
 		return {
 			day,

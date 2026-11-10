@@ -1,5 +1,6 @@
 import type {
 	DayKey,
+	BounceMinutes,
 	DayStartHour,
 	Gesture,
 	Instant,
@@ -17,7 +18,8 @@ import type {
  */
 export const settings: Settings = {
 	timeZone: 'America/Sao_Paulo' as TimeZone,
-	dayStartHour: 4 as DayStartHour
+	dayStartHour: 4 as DayStartHour,
+	bounceMinutes: 0 as BounceMinutes
 };
 export const day = '2026-11-09' as DayKey;
 

@@ -91,32 +91,64 @@ export function byTime(a: Mark, b: Mark): number {
 }
 
 /**
+ * The gesture the fold reads for each of `sorted`, which holds non-voided marks in timeline
+ * order. A tap left again within `bounceMs` reads as a hold: quick taps between tasks are a
+ * juggle done by hand, so the task left behind stays held while the new one joins it, and
+ * the first stay that lasts narrows or switches as a tap does. A stay runs until the next
+ * mark that is not a tap or hold on the same task. One still open at the end of `sorted`
+ * reads as given, so the latest tap never waits on the clock.
+ */
+export function readGestures(sorted: readonly Mark[], bounceMs: number): Gesture[] {
+	const out = sorted.map((m) => m.gesture);
+	if (bounceMs <= 0) return out;
+	const sameTask = (g: Gesture, task: TaskId) =>
+		(g.k === 'tap' || g.k === 'hold') && g.task === task;
+	for (let i = 0; i < sorted.length; i++) {
+		const g = sorted[i].gesture;
+		if (g.k !== 'tap') continue;
+		let j = i + 1;
+		while (j < sorted.length && sameTask(sorted[j].gesture, g.task)) j++;
+		if (j < sorted.length && sorted[j].at - sorted[i].at < bounceMs) {
+			out[i] = { k: 'hold', task: g.task };
+		}
+	}
+	return out;
+}
+
+/** Non-voided marks in [from, to), in timeline order. */
+function between(marks: readonly Mark[], from: number, to: number): Mark[] {
+	return marks.filter((m) => !m.voided && m.at >= from && m.at < to).sort(byTime);
+}
+
+/**
  * How far back a day looks for the focus carried into it. Focus left open longer than
  * this with no new mark reads as off at the next day start.
  */
 export const CARRY_LOOKBACK_MS = 24 * 3_600_000;
 
 /** When the focus held at `start` began: its last change in the lookback window. */
-function carriedSince(marks: readonly Mark[], start: Instant): Instant {
+function carriedSince(marks: readonly Mark[], start: Instant, bounceMs: number): Instant {
+	const window = between(marks, start - CARRY_LOOKBACK_MS, start);
+	const gestures = readGestures(window, bounceMs);
 	let state = FOLD_START;
 	let since = start;
-	for (const m of marks
-		.filter((m) => !m.voided && m.at >= start - CARRY_LOOKBACK_MS && m.at < start)
-		.sort(byTime)) {
-		const next = step(state, m.gesture).next;
+	window.forEach((m, i) => {
+		const next = step(state, gestures[i]).next;
 		if (!sameFocus(state.focus, next.focus)) since = m.at as Instant;
 		state = next;
-	}
+	});
 	return since;
 }
 
-/** The fold state at `start`, from the marks of the lookback window before it. */
-export function carryIn(marks: readonly Mark[], start: Instant): FoldState {
-	const from = start - CARRY_LOOKBACK_MS;
+/**
+ * The fold state at `start`, from the marks of the lookback window before it. A stay cut
+ * off by `start` reads as settled, as it did when the day before was derived.
+ */
+export function carryIn(marks: readonly Mark[], start: Instant, bounceMs = 0): FoldState {
+	const window = between(marks, start - CARRY_LOOKBACK_MS, start);
+	const gestures = readGestures(window, bounceMs);
 	let state = FOLD_START;
-	for (const m of marks.filter((m) => !m.voided && m.at >= from && m.at < start).sort(byTime)) {
-		state = step(state, m.gesture).next;
-	}
+	for (const g of gestures) state = step(state, g).next;
 	return state;
 }
 
@@ -224,18 +256,19 @@ function accrue(
 
 /**
  * Derive one day. Pure. `marks` may hold any marks, voided or not, in any order; only
- * the non-voided ones inside the range count. `carry` comes from carryIn.
- * `live` keeps the last stretch open as the tail instead of closing it at range.end.
+ * the non-voided ones inside the range count. `carry` comes from carryIn, with the same
+ * `bounceMs`; see readGestures. `live` keeps the last stretch open as the tail instead of
+ * closing it at range.end.
  */
 export function deriveDay(
 	marks: readonly Mark[],
 	range: DayRange,
 	carry: FoldState,
-	live: boolean
+	live: boolean,
+	bounceMs = 0
 ): DayView {
-	const inDay = marks
-		.filter((m) => !m.voided && m.at >= range.start && m.at < range.end)
-		.sort(byTime);
+	const inDay = between(marks, range.start, range.end);
+	const gestures = readGestures(inDay, bounceMs);
 	const segments: Segment[] = [];
 	const transitions: Transition[] = [];
 	const perTask = new Map<TaskId, MutableTaskDay>();
@@ -249,8 +282,8 @@ export function deriveDay(
 
 	if (carry.focus.k === 'working') for (const t of carry.focus.tasks) taskDay(perTask, t);
 
-	for (const m of inDay) {
-		const r = step(state, m.gesture);
+	for (const [i, m] of inDay.entries()) {
+		const r = step(state, gestures[i]);
 		const t: Transition = {
 			mark: m.id,
 			at: m.at,
@@ -285,7 +318,7 @@ export function deriveDay(
 
 	let tail: Tail | null = null;
 	if (live) {
-		const since = segMark === null ? carriedSince(marks, range.start) : cursor;
+		const since = segMark === null ? carriedSince(marks, range.start, bounceMs) : cursor;
 		tail = { start: cursor, since, focus: state.focus, mark: segMark };
 	} else if (range.end > cursor) {
 		segments.push({ start: cursor, end: range.end, focus: state.focus, mark: segMark });

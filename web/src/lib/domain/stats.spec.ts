@@ -78,6 +78,7 @@ describe('aggregateDay on the notebook day', () => {
 
 	it('names the settings it was computed under, so a zone change makes it stale', () => {
 		expect(basisOf({ ...notebook.settings, dayStartHour: 5 as never })).not.toBe(agg.basis);
+		expect(basisOf({ ...notebook.settings, bounceMinutes: 5 as never })).not.toBe(agg.basis);
 	});
 });
 
