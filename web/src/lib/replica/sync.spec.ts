@@ -211,6 +211,23 @@ describe('the sync loop', () => {
 		expect(phone.sync.status.kind).toBe('idle');
 	});
 
+	it('goes quiet once the outbox is pushed and the log is pulled', async () => {
+		const server = new FakeServer();
+		const phone = await device(server);
+		phone.sync.start();
+		phone.replica.commit([tap('m_quiet', 't_a', 1000)]);
+		await phone.replica.flushed();
+		const settle = () => new Promise((resolve) => setTimeout(resolve, 50));
+		for (let i = 0; i < 20 && server.rows.length === 0; i++) await settle();
+		await settle();
+		const asked = server.requests.length;
+		await settle();
+		phone.sync.stop();
+		expect(server.rows).toHaveLength(1);
+		expect(server.requests.length).toBe(asked);
+		expect(asked).toBeLessThanOrEqual(3);
+	});
+
 	it('syncs when the live stream reports a newer head', async () => {
 		const server = new FakeServer();
 		let onHead: ((e: MessageEvent<string>) => void) | null = null;
