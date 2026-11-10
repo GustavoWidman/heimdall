@@ -284,15 +284,24 @@
 		text-decoration: line-through;
 		text-decoration-color: var(--rule);
 	}
+	/* One line tall and wrapping between details, so a detail that does not fit drops
+	   whole onto the hidden second line instead of being cut part way. */
 	.m {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
-		gap: 8px;
+		gap: 6px 8px;
+		height: 18px;
 		margin-top: 2px;
 		overflow: hidden;
 		font-size: 12px;
 		color: var(--ink-3);
 		white-space: nowrap;
+	}
+	.m > * {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 	.near {
 		color: var(--c-text);
@@ -379,10 +388,6 @@
 		.row:has(:focus-visible) .r {
 			min-width: 112px;
 			opacity: 0;
-		}
-		.row:hover .m,
-		.row:has(:focus-visible) .m {
-			mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
 		}
 		.r {
 			transition: opacity 0.15s;
