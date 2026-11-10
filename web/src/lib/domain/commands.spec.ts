@@ -242,4 +242,12 @@ describe('check-in and settings', () => {
 		w.do({ k: 'settings', timeZone: 'Europe/Berlin', dayStartHour: 5 });
 		expect(w.settings()).toEqual({ timeZone: 'Europe/Berlin', dayStartHour: 5 });
 	});
+
+	it('takes the bounce window in whole minutes up to an hour', () => {
+		const w = world(local(DAY, '22:00'));
+		expect(w.do({ k: 'settings', bounceMinutes: 2.5 })).toMatchObject({ ok: false });
+		expect(w.do({ k: 'settings', bounceMinutes: 61 })).toMatchObject({ ok: false });
+		w.do({ k: 'settings', bounceMinutes: 0 });
+		expect(w.settings()).toEqual({ bounceMinutes: 0 });
+	});
 });

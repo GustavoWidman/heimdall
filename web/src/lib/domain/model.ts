@@ -13,6 +13,8 @@ export type Hue = Brand<number, 'Hue'>;
 export type TimeZone = Brand<string, 'TimeZone'>;
 /** Integer 0..23, the local hour at which a day begins. */
 export type DayStartHour = Brand<number, 'DayStartHour'>;
+/** Integer 0..60. A tap left again within this many minutes reads as a hold; 0 reads taps as given. */
+export type BounceMinutes = Brand<number, 'BounceMinutes'>;
 /** Trimmed, 1..200 characters. */
 export type Title = Brand<string, 'Title'>;
 /** Sorted, duplicate-free, non-empty. Equal sets are element-wise equal arrays. */
@@ -69,6 +71,12 @@ export function timeZone(json: unknown): TimeZone | null {
 export function dayStartHour(json: unknown): DayStartHour | null {
 	return typeof json === 'number' && Number.isInteger(json) && json >= 0 && json <= 23
 		? (json as DayStartHour)
+		: null;
+}
+
+export function bounceMinutes(json: unknown): BounceMinutes | null {
+	return typeof json === 'number' && Number.isInteger(json) && json >= 0 && json <= 60
+		? (json as BounceMinutes)
 		: null;
 }
 
@@ -209,6 +217,12 @@ export function parsePlanId(id: string): { day: DayKey; task: TaskId } | null {
 export type Settings = {
 	readonly timeZone: TimeZone;
 	readonly dayStartHour: DayStartHour;
+	readonly bounceMinutes: BounceMinutes;
 };
 
 export const DEFAULT_DAY_START_HOUR = 4 as DayStartHour;
+export const DEFAULT_BOUNCE_MINUTES = 5 as BounceMinutes;
+
+export function bounceMs(s: Settings): number {
+	return s.bounceMinutes * 60_000;
+}

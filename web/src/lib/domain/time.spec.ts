@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
-import type { DayKey, DayStartHour, Instant, Settings, TimeZone } from './model';
+import type { BounceMinutes, DayKey, DayStartHour, Instant, Settings, TimeZone } from './model';
 import {
 	addDays,
 	dayOf,
@@ -18,7 +18,8 @@ const at = (iso: string) => Date.parse(iso) as Instant;
 const day = (s: string) => s as DayKey;
 const settings = (zone: string, hour = 4): Settings => ({
 	timeZone: zone as TimeZone,
-	dayStartHour: hour as DayStartHour
+	dayStartHour: hour as DayStartHour,
+	bounceMinutes: 0 as BounceMinutes
 });
 
 const saoPaulo = settings('America/Sao_Paulo');

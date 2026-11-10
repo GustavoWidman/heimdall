@@ -10,6 +10,7 @@ import {
 } from './focus';
 import {
 	REASONS,
+	bounceMs,
 	type DayKey,
 	type Instant,
 	type Mark,
@@ -23,11 +24,11 @@ import { hourIn, rangeOf, weekday } from './time';
 const HOUR = 3_600_000;
 
 /** Bump when aggregateDay changes meaning, so cached rows recompute. */
-export const STATS_VERSION = 3;
+export const STATS_VERSION = 4;
 
 /** What a cached aggregate was computed under. A row with another basis is stale. */
 export function basisOf(s: Settings): string {
-	return `${STATS_VERSION}|${s.timeZone}|${s.dayStartHour}`;
+	return `${STATS_VERSION}|${s.timeZone}|${s.dayStartHour}|${s.bounceMinutes}`;
 }
 
 export type ReasonCounts = Readonly<Record<Reason | 'untagged', number>>;
@@ -202,7 +203,9 @@ export function* aggregateDays(
 			firstAtOrAfter(sorted, range.start - CARRY_LOOKBACK_MS),
 			firstAtOrAfter(sorted, range.end)
 		);
-		yield aggregateDay(deriveDay(window, range, carryIn(window, range.start), false), s);
+		const bounce = bounceMs(s);
+		const carry = carryIn(window, range.start, bounce);
+		yield aggregateDay(deriveDay(window, range, carry, false, bounce), s);
 	}
 }
 

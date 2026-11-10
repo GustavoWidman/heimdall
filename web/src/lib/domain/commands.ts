@@ -4,6 +4,7 @@ import { isCheckInKey, parseCheckInValue, type CheckInPatch } from './checkin';
 import { step, type FoldState } from './focus';
 import {
 	dayStartHour,
+	bounceMinutes,
 	hue,
 	instant,
 	note,
@@ -53,7 +54,12 @@ export type Intent =
 			readonly day: DayKey;
 			readonly patch: Readonly<Record<string, unknown>>;
 	  }
-	| { readonly k: 'settings'; readonly timeZone?: string; readonly dayStartHour?: number };
+	| {
+			readonly k: 'settings';
+			readonly timeZone?: string;
+			readonly dayStartHour?: number;
+			readonly bounceMinutes?: number;
+	  };
 
 type TaskInput = {
 	readonly note?: string | null;
@@ -209,6 +215,11 @@ export function decide(ctx: DecideContext, intent: Intent): Decision {
 				const h = dayStartHour(intent.dayStartHour);
 				if (h === null) return reject('dayStartHour', 'needs a whole hour 0 to 23');
 				set.dayStartHour = h;
+			}
+			if (intent.bounceMinutes !== undefined) {
+				const b = bounceMinutes(intent.bounceMinutes);
+				if (b === null) return reject('bounceMinutes', 'needs whole minutes 0 to 60');
+				set.bounceMinutes = b;
 			}
 			return Object.keys(set).length ? ok({ kind: 'settings', id: 'user', set }) : ok();
 		}
