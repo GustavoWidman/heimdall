@@ -106,5 +106,18 @@
         heimdall-web = web;
         default = heimdall;
       };
+
+      checks = {
+        inherit heimdall;
+        heimdall-test = craneLib.cargoTest (args // { inherit cargoArtifacts; });
+        heimdall-clippy = craneLib.cargoClippy (
+          args
+          // {
+            inherit cargoArtifacts;
+            cargoClippyExtraArgs = "--all-targets -- --deny warnings";
+          }
+        );
+        heimdall-fmt = craneLib.cargoFmt { inherit (args) src; };
+      };
     };
 }
