@@ -302,3 +302,28 @@ test.describe('on a busy day', () => {
 		expect(cut, 'details cut part way').toEqual([]);
 	});
 });
+
+test('a quick glance away and back reads as a juggle, unless the window is off', async ({
+	page,
+	touch
+}) => {
+	await setClock(page, at(TODAY, '09:00'));
+	await planDay(page, ['deep work', 'chat']);
+	await tap(row(page, 'deep work'), touch);
+	await setClock(page, at(TODAY, '09:30'));
+	await tap(row(page, 'chat'), touch);
+	await expect(switches(page)).toHaveAccessibleName('1');
+	await setClock(page, at(TODAY, '09:32'));
+	await tap(row(page, 'deep work'), touch);
+	await expect(switches(page), 'coming back within five minutes is no switch').toHaveAccessibleName(
+		'1'
+	);
+	await expect(why(page)).toBeHidden();
+
+	await open(page, '/settings');
+	await page.getByLabel('quick taps juggle').selectOption('off');
+	await open(page);
+	await expect(switches(page), 'with the window off every tap reads as given').toHaveAccessibleName(
+		'2'
+	);
+});
