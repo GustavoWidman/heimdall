@@ -1,14 +1,15 @@
 import type { CheckIn } from './checkin';
-import { liveTotals, type DayView } from './focus';
+import { CARRY_LOOKBACK_MS, carryIn, deriveDay, liveTotals, type DayView } from './focus';
 import {
 	REASONS,
 	type DayKey,
 	type Instant,
+	type Mark,
 	type Reason,
 	type Settings,
 	type TaskId
 } from './model';
-import { hourIn, weekday } from './time';
+import { hourIn, rangeOf, weekday } from './time';
 
 /** Bump when aggregateDay changes meaning, so cached rows recompute. */
 export const STATS_VERSION = 1;
@@ -77,6 +78,36 @@ export function aggregateDay(view: DayView, s: Settings, now?: Instant): DayAggr
 		firstMark: view.transitions[0]?.at ?? null,
 		lastMark: view.transitions.at(-1)?.at ?? null
 	};
+}
+
+function firstAtOrAfter(sorted: readonly Mark[], at: number): number {
+	let lo = 0;
+	let hi = sorted.length;
+	while (lo < hi) {
+		const mid = (lo + hi) >> 1;
+		if (sorted[mid].at < at) lo = mid + 1;
+		else hi = mid;
+	}
+	return lo;
+}
+
+/**
+ * Aggregate closed days, one at a time so a caller can yield between them. `sorted` holds
+ * marks in timeline order covering every day asked for and the lookback before it.
+ */
+export function* aggregateDays(
+	sorted: readonly Mark[],
+	days: readonly DayKey[],
+	s: Settings
+): Generator<DayAggregate> {
+	for (const day of days) {
+		const range = rangeOf(day, s);
+		const window = sorted.slice(
+			firstAtOrAfter(sorted, range.start - CARRY_LOOKBACK_MS),
+			firstAtOrAfter(sorted, range.end)
+		);
+		yield aggregateDay(deriveDay(window, range, carryIn(window, range.start), false), s);
+	}
 }
 
 /** What a multi-day view gets per day: the aggregate and that day's check-in. */

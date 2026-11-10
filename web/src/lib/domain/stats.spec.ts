@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { carryIn, deriveDay } from './focus';
 import type { DayKey, MarkId } from './model';
-import { aggregateDay, basisOf, insights, rollup } from './stats';
-import { rangeOf } from './time';
+import { aggregateDay, aggregateDays, basisOf, insights, rollup } from './stats';
+import { byTime } from './focus';
+import { addDays, rangeOf } from './time';
 import * as notebook from './notebook-day.fixture';
 
 const MIN = 60_000;
@@ -102,5 +103,28 @@ describe('multi-day reads', () => {
 			notebook.code
 		]);
 		expect(i.fragmentation[0].switchesPerHour).toBeCloseTo(3 / (25 / 60));
+	});
+});
+
+describe('aggregateDays', () => {
+	it('gives each day the aggregate it has alone, carry included', () => {
+		const next = addDays(notebook.day, 1);
+		const late = {
+			id: 'm_late' as MarkId,
+			at: notebook.local(notebook.day, '23:30'),
+			gesture: { k: 'tap', task: notebook.code },
+			voided: false,
+			reason: null
+		} as const;
+		const marks = [...notebook.marks, late].sort(byTime);
+		const [first, second] = [...aggregateDays(marks, [notebook.day, next], notebook.settings)];
+		expect(first.switches).toBe(notebook.expected.switches);
+		expect(first.focusMs).toBe(notebook.expected.focusMs + 270 * MIN);
+		expect(second).toMatchObject({
+			day: next,
+			switches: 0,
+			focusMs: 24 * 60 * MIN,
+			firstMark: null
+		});
 	});
 });
