@@ -37,7 +37,7 @@
 		return () => clearTimeout(id);
 	});
 
-	const elapsed = $derived(tail ? timer(app.now - tail.start) : null);
+	const elapsed = $derived(tail ? timer(app.now - tail.since) : null);
 	const single = $derived(held.length === 1 ? held[0] : undefined);
 	const sub = $derived.by(() => {
 		if (focus.k === 'rest') return 'a break is part of the watch.';
@@ -80,7 +80,7 @@
 				{:else}
 					quiet
 				{/if}
-				{#if tail && focus.k !== 'off'}· since {clock(tail.start, zone)}{/if}
+				{#if tail && focus.k !== 'off'}· since {clock(tail.since, zone)}{/if}
 			</p>
 			<h2 class="title" class:many={held.length > 1}>
 				{#if focus.k === 'rest'}

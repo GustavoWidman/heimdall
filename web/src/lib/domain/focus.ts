@@ -96,6 +96,20 @@ export function byTime(a: Mark, b: Mark): number {
  */
 export const CARRY_LOOKBACK_MS = 24 * 3_600_000;
 
+/** When the focus held at `start` began: its last change in the lookback window. */
+function carriedSince(marks: readonly Mark[], start: Instant): Instant {
+	let state = FOLD_START;
+	let since = start;
+	for (const m of marks
+		.filter((m) => !m.voided && m.at >= start - CARRY_LOOKBACK_MS && m.at < start)
+		.sort(byTime)) {
+		const next = step(state, m.gesture).next;
+		if (!sameFocus(state.focus, next.focus)) since = m.at as Instant;
+		state = next;
+	}
+	return since;
+}
+
 /** The fold state at `start`, from the marks of the lookback window before it. */
 export function carryIn(marks: readonly Mark[], start: Instant): FoldState {
 	const from = start - CARRY_LOOKBACK_MS;
@@ -139,6 +153,8 @@ export type Segment = {
 
 export type Tail = {
 	readonly start: Instant;
+	/** When the focus held now began: `start`, or earlier when it carried over from before the day start. */
+	readonly since: Instant;
 	readonly focus: Focus;
 	readonly mark: MarkId | null;
 };
@@ -265,8 +281,10 @@ export function deriveDay(
 	}
 
 	let tail: Tail | null = null;
-	if (live) tail = { start: cursor, focus: state.focus, mark: segMark };
-	else if (range.end > cursor) {
+	if (live) {
+		const since = segMark === null ? carriedSince(marks, range.start) : cursor;
+		tail = { start: cursor, since, focus: state.focus, mark: segMark };
+	} else if (range.end > cursor) {
 		segments.push({ start: cursor, end: range.end, focus: state.focus, mark: segMark });
 		accrue(perTask, totals, state.focus, range.end - cursor);
 	}

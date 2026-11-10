@@ -287,13 +287,34 @@ describe('a live day', () => {
 	const view = deriveDay(marks, range, carryIn(marks, range.start), true);
 
 	it('keeps the last stretch open and counts it only in live totals', () => {
-		expect(view.tail).toEqual({ start: at('10:00'), focus: focusOf(a, b), mark: marks[1].id });
+		expect(view.tail).toEqual({
+			start: at('10:00'),
+			since: at('10:00'),
+			focus: focusOf(a, b),
+			mark: marks[1].id
+		});
 		expect(view.totals.focusMs).toBe(60 * MIN);
 		const live = liveTotals(view, at('10:15'));
 		expect(live.focusMs).toBe(75 * MIN);
 		expect(live.juggleMs).toBe(15 * MIN);
 		expect(live.perTask.get(b)?.ms).toBe(15 * MIN);
 		expect(focusAt(view, at('11:00'))).toEqual(focusOf(a, b));
+	});
+});
+
+describe('a live day with focus carried in', () => {
+	const marks = [mark(at('22:30'), tap(a)), mark(at('23:10'), hold(b))];
+	const range = rangeOf('2026-11-10' as DayKey, settings);
+	const view = deriveDay(marks, range, carryIn(marks, range.start), true);
+
+	it('clips the open stretch to the day, and remembers when that focus began', () => {
+		expect(view.tail).toMatchObject({
+			start: range.start,
+			since: at('23:10'),
+			focus: focusOf(a, b),
+			mark: null
+		});
+		expect(liveTotals(view, (range.start + 30 * MIN) as Instant).focusMs).toBe(30 * MIN);
 	});
 });
 
