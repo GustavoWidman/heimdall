@@ -52,7 +52,7 @@ the same toast follows every tick with an **undo** for the wrong tap, and **earl
 
 - **today.** the board, a live ribbon of the day, the current focus with its timer, tallies in groups of five, and a gentle note when you're about to leave something that's due soon.
 - **planning.** an open-the-day sheet with yesterday's leftovers and long-running tasks one tap away, deadlines, manual order, and a backlog for everything else.
-- **fixing the past.** ticked late? say it began 15 minutes earlier, right from the toast. forgot to tick at 14:00? log it there. tapped the wrong thing? undo it, or void it later. every count re-derives from what you actually did.
+- **fixing the past.** ticked late? say it began 15 minutes earlier, right from the toast, or tap the "since" time on what you're watching. forgot to tick at 14:00? log it there. tapped the wrong thing? undo it, or void it later. every count re-derives from what you actually did.
 - **history.** swipe back day by day. every switch, every reason, every task's time.
 - **week, month, year.** seven ribbons stacked on one hour scale, a calendar shaded by switching with headache, crying, and laughing marked, and a year as a heatmap of any metric.
 - **insights.** switching against your own usual range, when and why you switch, focus stretches, juggling, deadline pressure, strain next to switching, and a short list of what stands out. patterns, not causes.

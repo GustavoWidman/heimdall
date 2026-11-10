@@ -168,6 +168,13 @@ test('the toast after a tick undoes it, or moves it a few minutes earlier', asyn
 	await toast.getByRole('button', { name: '−30m' }).click();
 	await expect(focus(page)).toContainText('since 09:15');
 	await expect(row(page, 'alpha')).toContainText('10m');
+
+	await focus(page)
+		.getByRole('button', { name: /^since 09:15/ })
+		.click();
+	await expect(page.getByRole('dialog').getByRole('heading')).toHaveText(
+		/09:15\s*switched to\s*beta/
+	);
 });
 
 test('leaving a task due soon says so, once, without scolding', async ({ page, touch }) => {

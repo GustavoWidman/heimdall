@@ -1,14 +1,17 @@
 <!--
 	The instrument: a big iris on what you hold, its name, and a live timer. The timer adds
-	the open stretch to now; it never re-derives the day.
+	the open stretch to now; it never re-derives the day. "since" opens the tick that began
+	the stretch, to move it when the switch really happened earlier.
 -->
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { fly } from 'svelte/transition';
-	import type { Focus } from '#lib/app/app.svelte.ts';
+	import type { Focus, MarkId } from '#lib/app/app.svelte.ts';
 	import { clock, deadlineLabel, timer } from '#lib/ui/format.ts';
 	import Iris from '#lib/ui/Iris.svelte';
 	import { useCtx } from '#lib/ui/watch.svelte.ts';
+
+	let { onfix }: { onfix?: (mark: MarkId) => void } = $props();
 
 	const { app, watch } = useCtx();
 
@@ -80,7 +83,19 @@
 				{:else}
 					quiet
 				{/if}
-				{#if tail && focus.k !== 'off'}· since {clock(tail.since, zone)}{/if}
+				{#if tail && focus.k !== 'off'}
+					·
+					{#if tail.mark && onfix}
+						{@const mark = tail.mark}
+						<button
+							class="since"
+							aria-label="since {clock(tail.since, zone)}, change when it began"
+							onclick={() => onfix(mark)}>since {clock(tail.since, zone)}</button
+						>
+					{:else}
+						since {clock(tail.since, zone)}
+					{/if}
+				{/if}
 			</p>
 			<h2 class="title" class:many={held.length > 1}>
 				{#if focus.k === 'rest'}
@@ -196,6 +211,26 @@
 	}
 	.resting .dot {
 		background: var(--ink-3);
+	}
+	.since {
+		position: relative;
+		font: inherit;
+		letter-spacing: inherit;
+		color: inherit;
+		text-decoration: underline dotted var(--ink-4);
+		text-underline-offset: 3px;
+		transition: color 0.2s;
+	}
+	/* A finger-sized target around small text. */
+	.since::after {
+		content: '';
+		position: absolute;
+		inset: -14px -8px;
+	}
+	@media (hover: hover) {
+		.since:hover {
+			color: var(--ink);
+		}
 	}
 	.title {
 		display: flex;

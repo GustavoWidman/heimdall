@@ -128,7 +128,7 @@
 	</div>
 
 	<div class="instrument">
-		<FocusCard />
+		<FocusCard onfix={(mark) => show({ k: 'mark', mark })} />
 		<div class="desk"><Horizon /></div>
 		<div class="desk rest"><RestButton hint /></div>
 	</div>
