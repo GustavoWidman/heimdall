@@ -317,7 +317,7 @@ async fn epoch_is_stable_across_restarts_and_unique_per_data_dir() {
 }
 
 #[tokio::test]
-async fn login_sets_a_strict_secure_session_cookie() {
+async fn login_sets_a_lax_secure_session_cookie() {
     let server = Server::new();
     let response = server.login_with(PASSWORD).await;
     assert_eq!(response.status(), StatusCode::NO_CONTENT);
@@ -327,7 +327,37 @@ async fn login_sets_a_strict_secure_session_cookie() {
     assert_eq!(token.len(), 43, "32 bytes in unpadded base64url");
     assert_eq!(
         attributes,
-        "HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=34560000"
+        "HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=34560000"
+    );
+}
+
+#[tokio::test]
+async fn a_session_first_used_on_a_new_day_gets_its_cookie_renewed() {
+    let server = Server::new();
+    let cookie = server.login().await;
+
+    let same_day = server.sync_raw(&cookie, sync_body(0, &[])).await;
+    assert_eq!(same_day.status(), StatusCode::OK);
+    assert!(same_day.headers().get(header::SET_COOKIE).is_none());
+
+    let db = rusqlite::Connection::open(server.root.path().join("data/heimdall.db")).unwrap();
+    db.execute(
+        "UPDATE sessions SET last_seen_at = last_seen_at - 2 * 86400000",
+        [],
+    )
+    .unwrap();
+
+    let next_day = server.sync_raw(&cookie, sync_body(0, &[])).await;
+    assert_eq!(next_day.status(), StatusCode::OK);
+    assert_eq!(
+        set_cookie(&next_day),
+        format!("{cookie}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=34560000")
+    );
+
+    let again = server.sync_raw(&cookie, sync_body(0, &[])).await;
+    assert!(
+        again.headers().get(header::SET_COOKIE).is_none(),
+        "once a day"
     );
 }
 
@@ -338,7 +368,7 @@ async fn insecure_cookies_flag_drops_only_secure() {
     let attributes = set_cookie(&response).split_once("; ").unwrap().1;
     assert_eq!(
         attributes,
-        "HttpOnly; SameSite=Strict; Path=/; Max-Age=34560000"
+        "HttpOnly; SameSite=Lax; Path=/; Max-Age=34560000"
     );
 }
 

@@ -5,7 +5,7 @@ use argon2::{ARGON2ID_IDENT, Argon2, PasswordHash, PasswordHasher, PasswordVerif
 use axum::Json;
 use axum::extract::{FromRequestParts, State};
 use axum::http::request::Parts;
-use axum::http::{HeaderMap, StatusCode, header};
+use axum::http::{HeaderMap, HeaderName, HeaderValue, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
@@ -63,23 +63,38 @@ pub fn hash_password(password: &str) -> eyre::Result<String> {
 }
 
 /// Proof that the request carries a live session.
-pub struct Session;
+pub struct Session {
+    renewal: Option<HeaderValue>,
+}
+
+impl Session {
+    /// A fresh cookie for the same token, once a day per session. Sent back with the
+    /// response, it keeps a session in use from ever reaching its Max-Age.
+    pub fn renewal(self) -> Option<[(HeaderName, HeaderValue); 1]> {
+        self.renewal.map(|value| [(header::SET_COOKIE, value)])
+    }
+}
 
 impl FromRequestParts<AppState> for Session {
     type Rejection = ApiError;
 
     async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, ApiError> {
-        let token_hash = session_token(&parts.headers)
-            .map(hash_token)
-            .ok_or(ApiError::Unauthenticated)?;
-        let live = state
+        let token = session_token(&parts.headers).ok_or(ApiError::Unauthenticated)?;
+        let token_hash = hash_token(token);
+        let seen = state
             .db
             .run(move |conn| db::touch_session(conn, &token_hash))
             .await?;
-        if live {
-            Ok(Session)
-        } else {
-            Err(ApiError::Unauthenticated)
+        match seen {
+            db::Seen::Unknown => Err(ApiError::Unauthenticated),
+            db::Seen::Live => Ok(Session { renewal: None }),
+            db::Seen::Renewed => Ok(Session {
+                renewal: Some(cookie_value(&cookie(
+                    token,
+                    COOKIE_MAX_AGE_SECS,
+                    state.secure_cookies,
+                ))),
+            }),
         }
     }
 }
@@ -150,8 +165,8 @@ pub async fn logout(
     Ok(with_cookie(&cookie("", 0, state.secure_cookies)))
 }
 
-pub async fn session(_: Session) -> StatusCode {
-    StatusCode::NO_CONTENT
+pub async fn session(session: Session) -> impl IntoResponse {
+    (session.renewal(), StatusCode::NO_CONTENT)
 }
 
 fn session_token(headers: &HeaderMap) -> Option<&str> {
@@ -169,12 +184,22 @@ fn hash_token(token: &str) -> Vec<u8> {
     Sha256::digest(token.as_bytes()).to_vec()
 }
 
+/// Lax rather than Strict: WebKit can withhold or drop a Strict cookie in a Home Screen web
+/// app that is relaunched or restored, which signs the app out. Lax still keeps the cookie
+/// off cross-site POSTs, and `same_origin` refuses those anyway.
 fn cookie(value: &str, max_age_secs: u64, secure: bool) -> String {
     let secure = if secure { " Secure;" } else { "" };
-    format!("{COOKIE}={value}; HttpOnly;{secure} SameSite=Strict; Path=/; Max-Age={max_age_secs}")
+    format!("{COOKIE}={value}; HttpOnly;{secure} SameSite=Lax; Path=/; Max-Age={max_age_secs}")
+}
+
+fn cookie_value(cookie: &str) -> HeaderValue {
+    HeaderValue::from_str(cookie).expect("cookies are ASCII")
 }
 
 fn with_cookie(cookie: &str) -> Response {
-    let value = header::HeaderValue::from_str(cookie).expect("cookies are ASCII");
-    (StatusCode::NO_CONTENT, [(header::SET_COOKIE, value)]).into_response()
+    (
+        StatusCode::NO_CONTENT,
+        [(header::SET_COOKIE, cookie_value(cookie))],
+    )
+        .into_response()
 }

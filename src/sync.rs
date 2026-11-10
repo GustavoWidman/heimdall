@@ -4,11 +4,12 @@ use std::time::Duration;
 use axum::Json;
 use axum::body::Bytes;
 use axum::extract::State;
+use axum::response::IntoResponse;
 use axum::response::sse::{Event, KeepAlive, Sse};
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
+use tokio_stream::StreamExt;
 use tokio_stream::wrappers::WatchStream;
-use tokio_stream::{Stream, StreamExt};
 
 use crate::auth::Session;
 use crate::{ApiError, AppState, db};
@@ -101,10 +102,10 @@ fn is_id_byte(byte: u8) -> bool {
 /// Pushes the request's ops and returns every op after the client's cursor, in one round
 /// trip. Repeating a request stores nothing new, because an op's hlc is its identity.
 pub async fn sync(
-    _: Session,
+    session: Session,
     State(state): State<AppState>,
     body: Bytes,
-) -> Result<Json<SyncResponse>, ApiError> {
+) -> Result<impl IntoResponse, ApiError> {
     let request: SyncRequest = serde_json::from_slice(&body)
         .map_err(|e| ApiError::bad_request(format!("invalid sync request: {e}")))?;
     if request.after < 0 {
@@ -154,24 +155,29 @@ pub async fn sync(
             Ok(StoredOp { seq, op })
         })
         .collect::<Result<_, ApiError>>()?;
-    Ok(Json(SyncResponse {
-        epoch,
-        head,
-        ops,
-        more,
-    }))
+    Ok((
+        session.renewal(),
+        Json(SyncResponse {
+            epoch,
+            head,
+            ops,
+            more,
+        }),
+    ))
 }
 
 /// A poke, not a feed: it says the head moved, and the client pulls through `/api/sync`,
 /// so ops arrive one way only.
-pub async fn live(
-    _: Session,
-    State(state): State<AppState>,
-) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+pub async fn live(session: Session, State(state): State<AppState>) -> impl IntoResponse {
     let heads = WatchStream::new(state.head.subscribe()).map(|head| {
-        Ok(Event::default()
-            .event("head")
-            .data(format!("{{\"head\":{head}}}")))
+        Ok::<_, Infallible>(
+            Event::default()
+                .event("head")
+                .data(format!("{{\"head\":{head}}}")),
+        )
     });
-    Sse::new(heads).keep_alive(KeepAlive::new().interval(HEARTBEAT))
+    (
+        session.renewal(),
+        Sse::new(heads).keep_alive(KeepAlive::new().interval(HEARTBEAT)),
+    )
 }

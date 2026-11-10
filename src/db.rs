@@ -145,9 +145,18 @@ pub fn create_session(conn: &Connection, token_hash: &[u8]) -> rusqlite::Result<
     Ok(())
 }
 
-/// Whether the session exists. Refreshes `last_seen_at` at most once a day, so polling and
-/// live connections do not turn every authenticated read into a write.
-pub fn touch_session(conn: &Connection, token_hash: &[u8]) -> rusqlite::Result<bool> {
+/// What a request's session token turned out to be.
+#[derive(Debug, PartialEq, Eq)]
+pub enum Seen {
+    Unknown,
+    Live,
+    /// Live, and first seen today: its cookie is due for a fresh expiry.
+    Renewed,
+}
+
+/// Looks the session up. Refreshes `last_seen_at` at most once a day, so polling and live
+/// connections do not turn every authenticated read into a write.
+pub fn touch_session(conn: &Connection, token_hash: &[u8]) -> rusqlite::Result<Seen> {
     let last_seen: Option<i64> = conn
         .query_row(
             "SELECT last_seen_at FROM sessions WHERE token_hash = ?1",
@@ -156,16 +165,17 @@ pub fn touch_session(conn: &Connection, token_hash: &[u8]) -> rusqlite::Result<b
         )
         .optional()?;
     let Some(last_seen) = last_seen else {
-        return Ok(false);
+        return Ok(Seen::Unknown);
     };
     let now = now_ms();
-    if now - last_seen > DAY_MS {
-        conn.execute(
-            "UPDATE sessions SET last_seen_at = ?2 WHERE token_hash = ?1",
-            params![token_hash, now],
-        )?;
+    if now - last_seen <= DAY_MS {
+        return Ok(Seen::Live);
     }
-    Ok(true)
+    conn.execute(
+        "UPDATE sessions SET last_seen_at = ?2 WHERE token_hash = ?1",
+        params![token_hash, now],
+    )?;
+    Ok(Seen::Renewed)
 }
 
 pub fn delete_session(conn: &Connection, token_hash: &[u8]) -> rusqlite::Result<()> {
