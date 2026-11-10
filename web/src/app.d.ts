@@ -10,4 +10,11 @@ declare global {
 	}
 }
 
+declare module 'svelte/elements' {
+	interface HTMLInputAttributes {
+		/** Safari's switch control for a checkbox. */
+		switch?: boolean;
+	}
+}
+
 export {};
