@@ -191,7 +191,9 @@
 
 	<div class="acts">
 		<button type="button" class="btn quiet" onclick={onclose}>cancel</button>
-		<button class="btn primary" disabled={!title.trim()}>{task ? 'save' : planToday ? 'add to today' : 'add task'}</button>
+		<button class="btn primary" disabled={!title.trim()}
+			>{task ? 'save' : planToday ? 'add to today' : 'add task'}</button
+		>
 	</div>
 </form>
 

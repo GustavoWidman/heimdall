@@ -67,12 +67,7 @@
 	</div>
 
 	{#if def.kind === 'scale' || def.kind === 'choice'}
-		<div
-			class="cells"
-			role="group"
-			aria-labelledby={id}
-			style:--n={def.values.length}
-		>
+		<div class="cells" role="group" aria-labelledby={id} style:--n={def.values.length}>
 			{#each def.values as v, i (v)}
 				<button class="cell" aria-pressed={v === value} onclick={() => pick(v)}>
 					<span>{def.labels[i]}</span>
@@ -100,8 +95,7 @@
 			placeholder="optional"
 			bind:value={draft}
 			{oninput}
-			onblur={flush}
-		></textarea>
+			onblur={flush}></textarea>
 	{/if}
 </div>
 

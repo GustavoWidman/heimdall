@@ -110,7 +110,10 @@
 					{#each zones as z (z)}<option value={z}>{z.replaceAll('_', ' ')}</option>{/each}
 				</select>
 				{#if app.settings.timeZone !== deviceZone}
-					<button class="chip small" onclick={() => app.do({ k: 'settings', timeZone: deviceZone })}>
+					<button
+						class="chip small"
+						onclick={() => app.do({ k: 'settings', timeZone: deviceZone })}
+					>
 						use this device’s, {deviceZone.replaceAll('_', ' ')}
 					</button>
 				{/if}
@@ -167,7 +170,9 @@
 			<dt>rest</dt>
 			<dd>a pause. going from a to rest and back to a is no switch; from a to rest to b is one.</dd>
 			<dt>tick</dt>
-			<dd>still the notebook’s unit: one tap on a task. per-task ticks sit where you’re used to them.</dd>
+			<dd>
+				still the notebook’s unit: one tap on a task. per-task ticks sit where you’re used to them.
+			</dd>
 			<dt>switch</dt>
 			<dd>
 				a moment something new enters your head. bouncing inside a juggle isn’t counted bounce by
