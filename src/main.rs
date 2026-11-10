@@ -5,6 +5,8 @@
 mod auth;
 mod db;
 mod sync;
+#[cfg(test)]
+mod tests;
 
 use std::io::{Read, Write};
 use std::net::SocketAddr;
