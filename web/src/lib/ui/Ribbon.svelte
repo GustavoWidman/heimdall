@@ -220,10 +220,6 @@
 </section>
 
 <style>
-	.ribbon {
-		/* The now marker and the pulse translate across the full track width. */
-		overflow-x: clip;
-	}
 	.top {
 		display: flex;
 		align-items: baseline;
@@ -241,6 +237,9 @@
 		border-radius: 6px;
 		background: repeating-linear-gradient(90deg, transparent 0 3px, var(--rule-2) 3px 4px);
 		box-shadow: inset 0 0 0 1px var(--rule-2);
+		/* The now marker and the pulse translate by up to the full track width. */
+		overflow-x: clip;
+		overflow-clip-margin: 6px;
 	}
 	.bars {
 		position: absolute;
