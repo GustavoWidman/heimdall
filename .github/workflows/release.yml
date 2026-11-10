@@ -1,0 +1,87 @@
+name: release
+
+# Every push to main is checked, built for each system, and pushed to the cache, where
+# heimdall-<system> pins the newest build. A version in Cargo.toml that has no tag yet is
+# then tagged and released at that commit.
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    uses: ./.github/workflows/check.yml
+
+  cache:
+    name: Cache ${{ matrix.system }}
+    needs: validate
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - system: x86_64-linux
+            runner: ubuntu-24.04
+          - system: aarch64-linux
+            runner: ubuntu-24.04-arm
+          - system: aarch64-darwin
+            runner: macos-15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+      - uses: nixbuild/nix-quick-install-action@v34
+        with:
+          nix_conf: |
+            substituters = https://cache.nixos.org/ https://cache.r3dlust.com
+            trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= cache.r3dlust.com-1:Wdkf9mes2ued0P7C7CL3Jax1b4KPuJwQpM3h4G/Z+yI=
+      - name: Configure the niks3 cache
+        id: cache
+        uses: Mic92/niks3-action@v1
+        with:
+          server-url: https://cache.r3dlust.com
+          substituter: https://cache.r3dlust.com
+          # Only the finished package is published, in the step below.
+          skip-push: true
+      - name: Check upload authorization before building
+        env:
+          NIKS3_BIN: ${{ steps.cache.outputs.binary-dir }}/niks3
+          NIKS3_AUTH_TOKEN_SCRIPT: ${{ steps.cache.outputs.auth-token-script }}
+        run: |
+          set -euo pipefail
+          : "${NIKS3_AUTH_TOKEN_SCRIPT:?cache discovery gave no OIDC token command}"
+          "$NIKS3_BIN" pins list --server-url https://cache.r3dlust.com \
+            --auth-token-script "$NIKS3_AUTH_TOKEN_SCRIPT" --json > /dev/null
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - run: nix build .#heimdall --print-build-logs
+      - name: Publish and pin heimdall
+        env:
+          NIKS3_BIN: ${{ steps.cache.outputs.binary-dir }}/niks3
+          NIKS3_AUTH_TOKEN_SCRIPT: ${{ steps.cache.outputs.auth-token-script }}
+          NIKS3_SERVER_URL: https://cache.r3dlust.com
+        run: .github/scripts/publish-cache "${{ matrix.system }}" "$(readlink result)"
+
+  release:
+    needs: cache
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Tag and release a new version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ github.sha }}
+        run: bash .github/scripts/release-tag.sh
