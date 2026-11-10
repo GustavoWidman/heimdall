@@ -11,6 +11,11 @@ a watchman for your context switches. heimdall keeps the day's tasks, takes a ti
 
 because a paper notebook can count the ticks, but it can't tell you that tuesday was 41 switches and a headache.
 
+<p>
+  <img src="assets/screenshots/today-phone.png" width="260" alt="today on a phone: the day's ribbon, a juggle of two tasks in the focus card, and the board with tallies">
+  <img src="assets/screenshots/today-desktop.png" width="560" alt="today on a desktop in dark mode: ribbon, focus card, board, deadlines on the horizon, and recent switches with their reasons">
+</p>
+
 ## the idea
 
 every morning you build the day's board. you carry over what's still open from yesterday, pull in long-running tasks, and add new ones. through the day, you tap whatever you just switched to. that's the whole ritual.
@@ -53,6 +58,8 @@ right after a switch, heimdall asks why for a few seconds: **done**, **blocked**
 - **offline first.** install it to your home screen. taps land in local storage within a frame, with or without a network, and sync to your other devices when they can.
 - **keyboard.** `1` to `9` switch, `shift` plus a number juggles, `r` rests, and every screen has a key.
 
+<img src="assets/screenshots/insights.png" width="820" alt="insights over 30 days: switches per day against your usual range, what stands out, strain next to switching, and why you switched">
+
 ## the check-in
 
 the core six take one tap each: stress, mental strain, mood, sleep quality, headache (none, mild, moderate, severe), and whether you could switch off from work in the evening. crying and laughing sit right next to them. energy, sleep hours, exercise, time outdoors, social contact, caffeine, meds, and a free note fold away under "more".
@@ -78,7 +85,9 @@ cargo run -- --data-dir ./data --web-dir web/build \
   --password-hash-file ./hash --insecure-cookies   # the sync server
 
 lock-web             # regenerate web/.bun.nix after changing web dependencies
-nix flake check      # rust tests, clippy, fmt, web types and tests, the package
+e2e                  # the end-to-end suite on a phone (webkit) and a desktop (chromium)
+perf                 # load, tap, and render timings of the production build
+nix flake check      # rust tests, clippy, fmt, web types and tests, size budgets, the package
 ```
 
 make the password hash with `cargo run -- hash-password < password-file > hash`, or `heimdall hash-password` once installed. it reads the password on stdin.
