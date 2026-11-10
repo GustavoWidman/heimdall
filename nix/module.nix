@@ -215,11 +215,13 @@
             ))
             assert again["epoch"] == first["epoch"], again
 
-            index = machine.succeed(f"curl -sf -D - -o /dev/null -H 'accept-encoding: br' {caddy}/day/2026-11-09").lower()
+            raw = machine.succeed(f"curl -sf -D - -o /dev/null -H 'accept-encoding: br' {caddy}/day/2026-11-09")
+            index = raw.lower()
             assert "cache-control: no-cache" in index, index
             assert "content-encoding: br" in index, index
             assert "x-content-type-options: nosniff" in index, index
-            etag = next(l.split(":", 1)[1].strip() for l in index.splitlines() if l.startswith("etag:"))
+            # ETags compare byte for byte, so read it before lowercasing.
+            etag = next(l.split(":", 1)[1].strip() for l in raw.splitlines() if l.lower().startswith("etag:"))
             assert len(etag) == 26 and etag.startswith('"'), f"a content-hash ETag: {etag}"
             unchanged = machine.succeed(
                 f"curl -s -o /dev/null -w '%{{http_code}}' -H 'accept-encoding: br' "
