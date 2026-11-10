@@ -1,6 +1,6 @@
 <!--
-	Deadlines that fell in the window, and how much of each task's time came in the last day
-	and the last three hours before it.
+	Deadlines still ahead and those that fell in the window, and how much of each task's time
+	came in the last day and the last three hours before it.
 -->
 <script lang="ts">
 	import type { DeadlinePressure, Task, TaskId } from '#lib/app/app.svelte.ts';
@@ -50,11 +50,12 @@
 							{#if d.msLast3h > 0}<i class="part last" style:flex-grow={d.msLast3h}></i>{/if}
 						</div>
 						<p class="about">
-							<b>{spent(d.ms)}</b> on it in these days. <b>{pct(d.msLast24h, d.ms)}%</b> came in the
-							last 24 hours, <b>{spent(d.msLast3h)}</b> in the last 3.
+							<b>{spent(d.ms)}</b> on it {d.upcoming ? 'so far' : 'in these days'}.
+							<b>{pct(d.msLast24h, d.ms)}%</b>
+							came in the last 24 hours, <b>{spent(d.msLast3h)}</b> in the last 3.
 						</p>
 					{:else}
-						<p class="about">no time on it in these days.</p>
+						<p class="about">no time on it {d.upcoming ? 'yet' : 'in these days'}.</p>
 					{/if}
 				</li>
 			{/each}
@@ -65,7 +66,7 @@
 			<span><i class="key last"></i>last 3 hours</span>
 		</div>
 	{:else}
-		<p class="quiet">no deadlines fell in the last {days} days.</p>
+		<p class="quiet">no deadlines in the last {days} days, and none in the next {days}.</p>
 	{/if}
 </Card>
 

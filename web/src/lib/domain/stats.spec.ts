@@ -230,7 +230,7 @@ describe('deadlinePressure', () => {
 		expect(p.msLast3h).toBe(0);
 	});
 
-	it('lists only deadlines inside the window and already past, latest first', () => {
+	it('lists deadlines passed inside the window, latest first', () => {
 		const out = deadlinePressure(
 			[agg],
 			[
@@ -244,6 +244,30 @@ describe('deadlinePressure', () => {
 			now
 		);
 		expect(out.map((p) => p.task)).toEqual([notebook.code, notebook.mail]);
+	});
+
+	it('lists active deadlines still ahead first, soonest first, as far ahead as the window reaches', () => {
+		const soon = (id: string, hhmm: string, days = 0, status: Task['status'] = 'active') => ({
+			...task(id as TaskId, notebook.local(addDays(notebook.day, days), hhmm)),
+			status
+		});
+		const out = deadlinePressure(
+			[agg],
+			[
+				task(notebook.code, notebook.local(notebook.day, '20:00')),
+				soon('t_later', '18:00', 1),
+				soon('t_sooner', '09:00', 1),
+				soon('t_done', '10:00', 1, 'done'),
+				soon('t_far', '09:00', 2)
+			],
+			notebook.settings,
+			now
+		);
+		expect(out.map((p) => [p.task, p.upcoming])).toEqual([
+			['t_sooner', true],
+			['t_later', true],
+			[notebook.code, false]
+		]);
 	});
 });
 

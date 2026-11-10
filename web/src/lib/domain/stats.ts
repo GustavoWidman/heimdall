@@ -367,6 +367,8 @@ export function taskTotals(aggs: readonly DayAggregate[]): TaskTotals[] {
 export type DeadlinePressure = {
 	readonly task: TaskId;
 	readonly deadline: Instant;
+	/** Still ahead of now; its times count what has happened so far. */
+	readonly upcoming: boolean;
 	/** Time on the task inside the days given and before the deadline. */
 	readonly ms: number;
 	readonly msLast24h: number;
@@ -385,9 +387,10 @@ function timeWithin(row: readonly number[], start: number, lo: number, hi: numbe
 }
 
 /**
- * Tasks whose deadline fell inside the days given, latest first, and how much of their time
- * came close to it. Time is kept per hour, so an hour that straddles a cutoff counts in
- * proportion.
+ * Tasks whose deadline fell inside the days given, and active tasks whose deadline is still
+ * ahead by no more than as many days, with how much of their time came close to it. Those
+ * ahead come first, soonest first, then those passed, latest first. Time is kept per hour,
+ * so an hour that straddles a cutoff counts in proportion.
  */
 export function deadlinePressure(
 	aggs: readonly DayAggregate[],
@@ -398,10 +401,13 @@ export function deadlinePressure(
 	if (aggs.length === 0) return [];
 	const from = rangeOf(aggs[0].day, s).start;
 	const to = Math.min(now, rangeOf(aggs[aggs.length - 1].day, s).end);
+	const ahead = now + aggs.length * 24 * HOUR;
 	const out: DeadlinePressure[] = [];
 	for (const t of tasks) {
 		const d = t.deadline;
-		if (d === null || d < from || d > to) continue;
+		if (d === null || d < from) continue;
+		const upcoming = d > now;
+		if (upcoming ? t.status !== 'active' || d > ahead : d > to) continue;
 		let ms = 0;
 		let msLast24h = 0;
 		let msLast3h = 0;
@@ -413,9 +419,15 @@ export function deadlinePressure(
 			msLast24h += timeWithin(row, start, d - 24 * HOUR, d);
 			msLast3h += timeWithin(row, start, d - 3 * HOUR, d);
 		}
-		out.push({ task: t.id, deadline: d, ms, msLast24h, msLast3h });
+		out.push({ task: t.id, deadline: d, upcoming, ms, msLast24h, msLast3h });
 	}
-	return out.sort((a, b) => b.deadline - a.deadline);
+	return out.sort((a, b) =>
+		a.upcoming !== b.upcoming
+			? Number(b.upcoming) - Number(a.upcoming)
+			: a.upcoming
+				? a.deadline - b.deadline
+				: b.deadline - a.deadline
+	);
 }
 
 const WEEKDAYS = [
