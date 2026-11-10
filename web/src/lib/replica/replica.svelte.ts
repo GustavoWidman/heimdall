@@ -212,6 +212,11 @@ export class Replica {
 		return this.#store.outbox(max);
 	}
 
+	/** Drop ops from the outbox without sending them; the records keep their values. */
+	async forget(hlcs: readonly Hlc[]): Promise<void> {
+		await this.#store.apply({ ops: [], acked: hlcs });
+	}
+
 	/** Apply a pull response in one transaction, then reflect it in the mirror. */
 	async absorb(batch: {
 		readonly ops: readonly Op[];
