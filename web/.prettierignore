@@ -1,0 +1,6 @@
+bun.lock
+/build
+/.svelte-kit
+/static
+/test-results
+/playwright-report
