@@ -33,13 +33,14 @@ import {
 	type Insights
 } from '../domain/stats';
 import { addDays, dayOf, daysBetween, rangeOf } from '../domain/time';
-import { parseEntity, type Rec } from '../replica/op';
+import { parseEntity, type Kind, type Rec } from '../replica/op';
 import { Replica } from '../replica/replica.svelte';
 import type { Touched } from '../replica/store';
 import { Sync, type SyncEnv, type SyncStatus } from '../replica/sync';
 
 export type { BoardRow, PlanSuggestions } from '../domain/board';
-export type { CheckIn } from '../domain/checkin';
+export type { CheckIn, CheckInKey, FieldDef } from '../domain/checkin';
+export { CHECKIN_FIELDS, CHECKIN_KEYS } from '../domain/checkin';
 export type { Decision, Intent } from '../domain/commands';
 export type { DayView, Segment, Transition, TransitionKind } from '../domain/focus';
 export type {
@@ -53,7 +54,8 @@ export type {
 	TaskId,
 	TaskStatus
 } from '../domain/model';
-export { REASONS } from '../domain/model';
+export { REASONS, dayKey } from '../domain/model';
+export { addDays } from '../domain/time';
 export type { DaySummary, Insights } from '../domain/stats';
 export type { SyncStatus } from '../replica/sync';
 
@@ -70,6 +72,18 @@ export type DayData = {
 export type TodayData = DayData & {
 	/** What to offer when building the day's board. */
 	readonly suggestions: PlanSuggestions;
+};
+
+/** Everything stored on this device, parsed, for a person to keep as a file. */
+export type Export = {
+	readonly format: 'heimdall-export';
+	readonly version: 1;
+	readonly exportedAt: string;
+	readonly settings: Settings;
+	readonly tasks: readonly Task[];
+	readonly marks: readonly Mark[];
+	readonly plans: readonly PlanEntry[];
+	readonly checkIns: readonly { readonly day: DayKey; readonly values: CheckIn }[];
 };
 
 export type DayPage = { readonly status: 'loading' } | ({ readonly status: 'ready' } & DayData);
@@ -374,6 +388,37 @@ export class App {
 
 	login(password: string): Promise<boolean> {
 		return this.#sync.login(password);
+	}
+
+	/** Ends the session; the next sync round sees it and reports needs-login. */
+	async logout(): Promise<void> {
+		const { fetch, base = '' } = this.#deps.sync;
+		await fetch(`${base}/api/logout`, { method: 'POST', credentials: 'same-origin' });
+		await this.#sync.wake();
+	}
+
+	/** Every record of every kind on this device, not only what is loaded. */
+	async export(): Promise<Export> {
+		const all = <K extends Kind>(kind: K) =>
+			this.#replica.store
+				.read(kind)
+				.then((recs) => recs.map((r) => parseEntity(kind, r)).filter((e) => e !== null));
+		const [tasks, marks, plans, checkIns] = await Promise.all([
+			all('task'),
+			all('mark'),
+			all('plan'),
+			all('checkin')
+		]);
+		return {
+			format: 'heimdall-export',
+			version: 1,
+			exportedAt: new Date(this.#now()).toISOString(),
+			settings: this.settings,
+			tasks,
+			marks: marks.sort(byTime),
+			plans,
+			checkIns
+		};
 	}
 
 	/** Resolves once every local write so far is durable on this device. */

@@ -127,3 +127,38 @@ describe('history', () => {
 		]);
 	});
 });
+
+describe('keeping and leaving', () => {
+	it('exports every stored record, including days that were never loaded', async () => {
+		const app = await open();
+		const a = create(app, 'report');
+		app.do({ k: 'tap', task: a, at: at('2026-10-01T10:00:00') as Instant });
+		app.do({ k: 'checkIn', day: '2026-11-10' as DayKey, patch: { stress: 2, note: 'calm' } });
+		await app.flushed();
+
+		const out = await app.export();
+		expect(out.format).toBe('heimdall-export');
+		expect(out.tasks.map((t) => t.title)).toEqual(['report']);
+		expect(out.marks.map((m) => m.gesture)).toEqual([{ k: 'tap', task: a }]);
+		expect(out.plans).toHaveLength(1);
+		expect(out.checkIns).toEqual([{ day: '2026-11-10', values: { stress: 2, note: 'calm' } }]);
+		expect(JSON.parse(JSON.stringify(out))).toEqual(out);
+	});
+
+	it('signs out on the server, then reports that it needs a login', async () => {
+		const calls: string[] = [];
+		let session = true;
+		const app = await open(async (input) => {
+			const url = String(input);
+			calls.push(url);
+			if (url.endsWith('/api/logout')) {
+				session = false;
+				return new Response(null, { status: 204 });
+			}
+			return new Response(null, { status: session ? 503 : 401 });
+		});
+		await app.logout();
+		expect(calls).toContain('/api/logout');
+		expect(app.sync).toEqual({ kind: 'needs-login' });
+	});
+});
