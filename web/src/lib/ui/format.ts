@@ -49,6 +49,14 @@ export function spent(ms: number): string {
 	return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`;
 }
 
+/**
+ * `×1.7`: how many tasks were held at once on average, from load over focus. Null with no
+ * focus time.
+ */
+export function times(loadMs: number, focusMs: number): string | null {
+	return focusMs > 0 ? `×${(loadMs / focusMs).toFixed(1)}` : null;
+}
+
 /** `45m`, `2h 10m`, `3d`. Time remaining. */
 export function remaining(ms: number): string {
 	const m = Math.max(0, Math.round(ms / MINUTE));

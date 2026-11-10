@@ -11,7 +11,7 @@ export function tracked(agg: DayAggregate): boolean {
 	return agg.ticks > 0 || agg.focusMs > 0 || agg.restMs > 0;
 }
 
-export type MetricId = 'switches' | 'focus' | 'juggle' | 'strain' | 'headache';
+export type MetricId = 'switches' | 'focus' | 'juggle' | 'load' | 'strain' | 'headache';
 
 export type Metric = {
 	readonly label: string;
@@ -54,6 +54,13 @@ export const METRICS: Readonly<Record<MetricId, Metric>> = {
 		lo: 0,
 		hi: most(HOUR),
 		format: (v) => `${spent(v)} juggling`
+	},
+	load: {
+		label: 'load',
+		value: (s) => (tracked(s.agg) ? s.agg.loadMs : null),
+		lo: 0,
+		hi: most(6 * HOUR),
+		format: (v) => `${spent(v)} load`
 	},
 	strain: {
 		label: 'strain',

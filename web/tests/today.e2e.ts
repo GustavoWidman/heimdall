@@ -118,7 +118,8 @@ test('tap, hold, release, rest, and end the day count as the switching table say
 	await setClock(page, at(TODAY, '10:50'));
 	await rest(page, touch);
 	await setClock(page, at(TODAY, '11:00'));
-	await expect(ribbon(page)).toContainText(/watched 1h(29|30) · rest 30m/);
+	// Two ten-minute juggles add twenty minutes of load on top of the focus.
+	await expect(ribbon(page)).toContainText(/watched 1h(29|30) · load 1h(49|50) ×1\.2 · rest 30m/);
 
 	await page.getByRole('button', { name: 'end the day' }).click();
 	await expect(focus(page)).toContainText('nothing on watch');

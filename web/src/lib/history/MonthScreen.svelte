@@ -136,7 +136,7 @@
 					{totals.switches === 1 ? 'switch' : 'switches'} over {watchedDays}
 					{watchedDays === 1 ? 'day' : 'days'} watched, with {spent(totals.focusMs)} of focus and {spent(
 						totals.juggleMs
-					)} juggling.
+					)} juggling, a load of {spent(totals.loadMs)}.
 				{/if}
 			</p>
 		{/if}

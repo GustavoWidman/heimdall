@@ -68,6 +68,7 @@
 		{ k: 'switches', a: String(t.a.switches), b: String(t.b.switches) },
 		{ k: 'focus', a: spent(t.a.focusMs), b: spent(t.b.focusMs) },
 		{ k: 'juggle', a: spent(t.a.juggleMs), b: spent(t.b.juggleMs) },
+		{ k: 'load', a: spent(t.a.loadMs), b: spent(t.b.loadMs) },
 		{ k: 'rest', a: spent(t.a.restMs), b: spent(t.b.restMs) }
 	];
 	const empty = $derived(

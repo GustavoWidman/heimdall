@@ -1,7 +1,7 @@
 <!-- The window at a glance: a handful of numbers, each with one line of context. -->
 <script lang="ts">
 	import type { DayKey, Insights } from '#lib/app/app.svelte.ts';
-	import { dayLabel, spent } from '#lib/ui/format.ts';
+	import { dayLabel, spent, times } from '#lib/ui/format.ts';
 
 	let { data, today }: { data: Insights; today: DayKey } = $props();
 
@@ -70,6 +70,13 @@
 		</dd>
 	</div>
 	<div>
+		<dt class="label">load</dt>
+		<dd class="value">{times(t.loadMs, t.focusMs) ?? '–'}</dd>
+		<dd class="sub">
+			{t.focusMs > 0 ? `${spent(t.loadMs)} over ${spent(t.focusMs)} focused` : 'tasks held at once'}
+		</dd>
+	</div>
+	<div>
 		<dt class="label">check-ins</dt>
 		<dd class="value">{answered.length}</dd>
 		<dd class="sub">
@@ -98,9 +105,6 @@
 		background: var(--panel);
 		min-width: 0;
 	}
-	.tiles > div:first-child {
-		grid-column: 1 / -1;
-	}
 	.value {
 		margin-top: 4px;
 		font-size: 30px;
@@ -115,10 +119,7 @@
 	}
 	@media (min-width: 1000px) {
 		.tiles {
-			grid-template-columns: repeat(5, minmax(0, 1fr));
-		}
-		.tiles > div:first-child {
-			grid-column: auto;
+			grid-template-columns: repeat(6, minmax(0, 1fr));
 		}
 		.tiles > div {
 			padding: 18px 20px;

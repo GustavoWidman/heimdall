@@ -8,7 +8,7 @@
 	import { untrack } from 'svelte';
 	import type { Attachment } from 'svelte/attachments';
 	import type { DayView, Focus, TaskId } from '#lib/app/app.svelte.ts';
-	import { clock, HOUR, MINUTE, minuteOfDay, spent } from './format';
+	import { clock, HOUR, MINUTE, minuteOfDay, spent, times } from './format';
 	import { workPaint } from './hue';
 	import type { Moment } from './watch.svelte';
 
@@ -96,10 +96,11 @@
 
 	const totals = $derived.by(() => {
 		const open = view.tail && now !== null ? Math.max(0, now - view.tail.start) : 0;
-		const f = view.tail?.focus.k;
+		const f = view.tail?.focus;
 		return {
-			watched: view.totals.focusMs + (f === 'working' ? open : 0),
-			rest: view.totals.restMs + (f === 'rest' ? open : 0)
+			watched: view.totals.focusMs + (f?.k === 'working' ? open : 0),
+			load: view.totals.loadMs + (f?.k === 'working' ? open * f.tasks.length : 0),
+			rest: view.totals.restMs + (f?.k === 'rest' ? open : 0)
 		};
 	});
 
@@ -107,6 +108,9 @@
 		[
 			now === null ? null : clock(now, zone),
 			`watched ${spent(totals.watched)}`,
+			totals.load > totals.watched
+				? `load ${spent(totals.load)} ${times(totals.load, totals.watched)}`
+				: null,
 			`rest ${spent(totals.rest)}`
 		]
 			.filter(Boolean)

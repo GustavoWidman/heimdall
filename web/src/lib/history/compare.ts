@@ -24,7 +24,8 @@ export function contrast(cur: RangeTotals, prev: RangeTotals, partial: boolean):
 	else lines.push(`as many switches as ${ref}`);
 	for (const [noun, d] of [
 		['focus', cur.focusMs - prev.focusMs],
-		['juggling', cur.juggleMs - prev.juggleMs]
+		['juggling', cur.juggleMs - prev.juggleMs],
+		['load', cur.loadMs - prev.loadMs]
 	] as const) {
 		if (Math.abs(d) < 5 * MINUTE) lines.push(`about the same ${noun} as ${ref}`);
 		else lines.push(`${spent(Math.abs(d))} ${d > 0 ? 'more' : 'less'} ${noun} than ${ref}`);
