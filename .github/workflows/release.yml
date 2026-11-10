@@ -15,8 +15,35 @@ permissions:
   contents: read
 
 jobs:
+  # A pull request merged by rebase lands with the tree its check already ran on, so the
+  # release reuses that `nix flake check` (VM test included) instead of repeating it. Any
+  # other push, or a failed lookup, runs the full check.
+  checked:
+    name: Find a passing check of this tree
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      run: ${{ steps.find.outputs.run }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+      - id: find
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if run=$(.github/scripts/checked-tree "$GITHUB_SHA"); then
+            echo "Reusing $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$run"
+            printf 'run=%s\n' "$run" >> "$GITHUB_OUTPUT"
+          fi
+
   validate:
+    needs: checked
     uses: ./.github/workflows/check.yml
+    with:
+      nix: ${{ needs.checked.outputs.run == '' }}
 
   cache:
     name: Cache ${{ matrix.system }}

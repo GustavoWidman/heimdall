@@ -4,6 +4,11 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
   workflow_call:
+    inputs:
+      nix:
+        description: Run nix flake check
+        type: boolean
+        default: true
 
 # Supersede only PR runs; a release run must finish its checks.
 concurrency:
@@ -33,6 +38,7 @@ jobs:
           python3 .github/scripts/version.py commits --base "$BASE_SHA" --head "$HEAD_SHA"
 
   nix:
+    if: github.event_name == 'pull_request' || inputs.nix
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
@@ -49,3 +55,19 @@ jobs:
             trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= cache.r3dlust.com-1:Wdkf9mes2ued0P7C7CL3Jax1b4KPuJwQpM3h4G/Z+yI=
             system-features = nixos-test benchmark big-parallel kvm
       - run: nix flake check --print-build-logs
+      # Records the tree that passed, so the release run of the same tree on main can reuse
+      # this check (see .github/scripts/checked-tree). On a pull request this is the merge
+      # of the head into the base.
+      - name: Record the checked tree
+        id: tree
+        if: github.event_name == 'pull_request'
+        run: |
+          tree=$(git rev-parse 'HEAD^{tree}')
+          printf '%s\n' "$tree" > "$RUNNER_TEMP/nix-check-tree"
+          printf 'tree=%s\n' "$tree" >> "$GITHUB_OUTPUT"
+      - if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: nix-check-${{ steps.tree.outputs.tree }}
+          path: ${{ runner.temp }}/nix-check-tree
+          retention-days: 30
