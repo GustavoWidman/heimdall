@@ -13,6 +13,17 @@
 		<link rel="manifest" href="/manifest.webmanifest" />
 		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 		<title>heimdall</title>
+		<script>
+			try {
+				var t = localStorage.getItem('heimdall-theme');
+				if (t === 'light' || t === 'dark') {
+					document.documentElement.dataset.theme = t;
+					document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) {
+						m.content = t === 'dark' ? '#0c0c0d' : '#f3f2ee';
+					});
+				}
+			} catch (e) {}
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
