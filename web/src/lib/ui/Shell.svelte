@@ -28,6 +28,7 @@
 	const needsLogin = $derived(app.sync.kind === 'needs-login');
 
 	const href = (d: Destination) => resolve(d.path);
+	/** A screen with a key in its path, such as one day of history, is still that screen. */
 	const isHere = (d: Destination) =>
 		path === href(d) || (d.path !== '/' && path.startsWith(`${href(d)}/`));
 	const tabs = DESTINATIONS.filter((d) => d.tab);
