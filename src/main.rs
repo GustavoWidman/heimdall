@@ -169,20 +169,30 @@ fn web(web_dir: &Path) -> Router<AppState> {
 }
 
 /// Hashed build assets never change, so browsers keep them for a year. Everything else,
-/// `index.html` and the service worker first of all, is revalidated on every load so a
-/// deploy reaches clients.
-async fn cache_control(request: Request, next: Next) -> Response {
+/// `index.html` and the service worker first of all, is fetched again on every load so a
+/// deploy reaches clients. Those files are small, and their validators cannot be trusted:
+/// in the Nix store every file has the same mtime, so a new `index.html` of the same size
+/// would look unmodified.
+async fn cache_control(mut request: Request, next: Next) -> Response {
     let immutable = request.uri().path().starts_with("/_app/immutable/");
+    if !immutable {
+        let headers = request.headers_mut();
+        headers.remove(header::IF_MODIFIED_SINCE);
+        headers.remove(header::IF_NONE_MATCH);
+    }
     let mut response = next.run(request).await;
-    if response.status().is_success() || response.status() == StatusCode::NOT_MODIFIED {
-        let value = if immutable {
-            "public, max-age=31536000, immutable"
-        } else {
-            "no-cache"
-        };
-        response
-            .headers_mut()
-            .insert(header::CACHE_CONTROL, HeaderValue::from_static(value));
+    if immutable {
+        if response.status().is_success() {
+            response.headers_mut().insert(
+                header::CACHE_CONTROL,
+                HeaderValue::from_static("public, max-age=31536000, immutable"),
+            );
+        }
+    } else {
+        let headers = response.headers_mut();
+        headers.remove(header::LAST_MODIFIED);
+        headers.remove(header::ETAG);
+        headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("no-cache"));
     }
     response
 }

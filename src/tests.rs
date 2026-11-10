@@ -529,6 +529,23 @@ async fn deep_links_serve_the_spa_without_caching() {
 }
 
 #[tokio::test]
+async fn the_spa_is_never_answered_as_unmodified() {
+    let server = Server::new();
+    let first = server.get("/").await;
+    assert!(first.headers().get(header::ETAG).is_none());
+    assert!(first.headers().get(header::LAST_MODIFIED).is_none());
+
+    let request = Request::get("/")
+        .header(header::IF_MODIFIED_SINCE, "Fri, 01 Jan 2100 00:00:00 GMT")
+        .header(header::IF_NONE_MATCH, "*")
+        .body(Body::empty())
+        .unwrap();
+    let response = server.send(request).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(body_bytes(response).await, INDEX_HTML.as_bytes());
+}
+
+#[tokio::test]
 async fn immutable_assets_are_cached_for_a_year() {
     let server = Server::new();
     let response = server.get("/_app/immutable/x.js").await;
