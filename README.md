@@ -92,7 +92,7 @@ perf                 # load, tap, and render timings of the production build
 nix flake check      # rust tests, clippy, fmt, web types and tests, size budgets, the package
 ```
 
-make the password hash with `cargo run -- hash-password < password-file > hash`, or `heimdall hash-password` once installed. it reads the password on stdin.
+make the password hash with `cargo run -- hash-password < password-file > hash`, or `heimdall hash-password` once installed. in a terminal it asks for the password twice without echoing it; otherwise it reads it from stdin.
 
 ## deploying
 

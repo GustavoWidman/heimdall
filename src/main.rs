@@ -8,7 +8,7 @@ mod sync;
 #[cfg(test)]
 mod tests;
 
-use std::io::{Read, Write};
+use std::io::{IsTerminal, Read, Write};
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -39,7 +39,8 @@ fn cli() -> clap::Command {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Read a password on stdin and print its argon2id PHC string for --password-hash-file.
+    /// Print the argon2id PHC string of a password, for --password-hash-file. Prompts for it
+    /// twice when stdin is a terminal; otherwise reads it from stdin to the end.
     HashPassword,
 }
 
@@ -249,6 +250,19 @@ fn is_same_origin(origin: &HeaderValue, request: &Request) -> bool {
     }
 }
 
+/// Asks on the terminal without echoing, twice, so a typo does not become the password.
+fn prompt_password(mut output: impl Write) -> eyre::Result<()> {
+    let password = rpassword::prompt_password("password: ").wrap_err("reading the password")?;
+    if password.is_empty() {
+        eyre::bail!("the password is empty");
+    }
+    if rpassword::prompt_password("again: ").wrap_err("reading the password")? != password {
+        eyre::bail!("the passwords differ");
+    }
+    writeln!(output, "{}", auth::hash_password(&password)?)?;
+    Ok(())
+}
+
 fn hash_password(mut input: impl Read, mut output: impl Write) -> eyre::Result<()> {
     let mut password = String::new();
     input
@@ -286,6 +300,9 @@ async fn main() -> eyre::Result<()> {
     let matches = cli().get_matches();
     if matches.subcommand().is_some() {
         match Command::from_arg_matches(&matches).unwrap_or_else(|e| e.exit()) {
+            Command::HashPassword if std::io::stdin().is_terminal() => {
+                prompt_password(std::io::stdout())
+            }
             Command::HashPassword => hash_password(std::io::stdin(), std::io::stdout()),
         }
     } else {

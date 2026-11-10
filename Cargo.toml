@@ -1,6 +1,6 @@
 [package]
 name = "heimdall"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "heimdall: the watchman for your context switches"
 license = "MIT"
@@ -12,6 +12,7 @@ base64 = "0.23.1"
 clap = { version = "4.6", features = ["derive", "env"] }
 eyre = "0.6.14"
 getrandom = "0.4.3"
+rpassword = "7"
 rusqlite = { version = "0.41", features = ["bundled"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = { version = "1.0.154", features = ["raw_value"] }
