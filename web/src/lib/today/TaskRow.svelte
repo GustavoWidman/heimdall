@@ -368,14 +368,18 @@
 			pointer-events: none;
 		}
 		.row:hover .acts,
-		.row:focus-within .acts {
+		.row:has(:focus-visible) .acts {
 			opacity: 1;
 			transform: translate(0, -50%);
 			pointer-events: auto;
 		}
 		.row:hover .r,
-		.row:focus-within .r {
+		.row:has(:focus-visible) .r {
 			opacity: 0;
+		}
+		.row:hover .t,
+		.row:has(:focus-visible) .t {
+			mask-image: linear-gradient(to right, #000 calc(100% - 120px), transparent calc(100% - 80px));
 		}
 		.r {
 			transition: opacity 0.15s;
