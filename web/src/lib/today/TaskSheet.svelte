@@ -4,7 +4,7 @@
 -->
 <script lang="ts">
 	import type { Instant, Intent, Task } from '#lib/app/app.svelte.ts';
-	import { toLocalInput } from '#lib/ui/format.ts';
+	import { HOUR, toLocalInput } from '#lib/ui/format.ts';
 	import { freeHue, PALETTE } from '#lib/ui/hue.ts';
 	import { useCtx } from '#lib/ui/watch.svelte.ts';
 
@@ -102,12 +102,22 @@
 
 	<div class="fld">
 		<label class="nm" for="deadline">deadline</label>
-		<div class="inline">
-			<input id="deadline" class="field" type="datetime-local" bind:value={deadline} />
-			{#if deadline}
+		<!-- An empty date field still shows a date in Safari, so "no deadline" is a button. -->
+		{#if deadline}
+			<div class="inline">
+				<input id="deadline" class="field" type="datetime-local" bind:value={deadline} />
 				<button type="button" class="btn quiet" onclick={() => (deadline = '')}>none</button>
-			{/if}
-		</div>
+			</div>
+		{:else}
+			<button
+				id="deadline"
+				type="button"
+				class="btn quiet add-deadline"
+				onclick={() => (deadline = toLocalInput(Math.ceil((app.now + HOUR) / HOUR) * HOUR))}
+			>
+				no deadline · add one
+			</button>
+		{/if}
 		{#if problem?.field === 'deadline'}<span class="problem" role="alert">{problem.text}</span>{/if}
 	</div>
 
@@ -257,6 +267,12 @@
 	.inline .btn {
 		flex: none;
 		min-height: 44px;
+	}
+	.add-deadline {
+		align-self: flex-start;
+		min-height: 44px;
+		font-weight: 450;
+		color: var(--ink-2);
 	}
 	.toggle {
 		flex-direction: row;
