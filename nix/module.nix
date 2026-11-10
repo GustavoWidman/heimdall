@@ -228,7 +228,7 @@
             assert unchanged == "304", unchanged
 
             asset = machine.succeed(
-                f"find ${self'.packages.heimdall.web}/_app/immutable -name '*.js' -print -quit"
+                "find ${self'.packages.heimdall.web}/_app/immutable -name '*.js' -print -quit"
             ).strip().removeprefix("${self'.packages.heimdall.web}")
             headers = machine.succeed(f"curl -sf -D - -o /dev/null {caddy}{asset}").lower()
             assert "max-age=31536000, immutable" in headers, headers
