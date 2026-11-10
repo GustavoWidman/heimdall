@@ -86,15 +86,19 @@
 			const row = rows[Number(digit[1]) - 1];
 			if (!row) return;
 			e.preventDefault();
-			watch.press(row.task.id, e.shiftKey ? 'hold' : 'tap');
+			if (e.repeat) return;
+			if (e.shiftKey) watch.press(row.task.id, 'hold');
+			else watch.keyDown(e.code, row.task.id);
 		} else if (e.key === 'n') {
 			e.preventDefault();
 			show({ k: 'plan', opening: false });
 		}
 	}
+
+	onDestroy(() => watch.keyCancel());
 </script>
 
-<svelte:window {onkeydown} />
+<svelte:window {onkeydown} onkeyup={(e) => watch.keyUp(e.code)} onblur={() => watch.keyCancel()} />
 <svelte:head><title>today · heimdall</title></svelte:head>
 
 <div class="today">
@@ -103,7 +107,7 @@
 		<span class="date mono">{dayLabel(today.day)}</span>
 		<span class="keys label" aria-hidden="true">
 			<span><kbd>1</kbd>–<kbd>9</kbd> switch</span>
-			<span><kbd>shift</kbd>+<kbd>1</kbd> juggle</span>
+			<span>hold <kbd>1</kbd> juggle</span>
 			<span><kbd>r</kbd> rest</span>
 			<span><kbd>n</kbd> add</span>
 		</span>

@@ -56,7 +56,7 @@ right after a switch, heimdall asks why for a few seconds: **done**, **blocked**
 - **insights.** switching against your own usual range, when and why you switch, focus stretches, juggling, deadline pressure, strain next to switching, and a short list of what stands out. patterns, not causes.
 - **check-in.** about 30 seconds, every question optional, built from the research below.
 - **offline first.** install it to your home screen. taps land in local storage within a frame, with or without a network, and sync to your other devices when they can.
-- **keyboard.** `1` to `9` switch, `shift` plus a number juggles, `r` rests, and every screen has a key.
+- **keyboard.** `1` to `9` switch, holding one down (or `shift` plus a number) juggles, `r` rests, and every screen has a key.
 
 <img src="assets/screenshots/insights.png" width="820" alt="insights over 30 days: switches per day against your usual range, what stands out, strain next to switching, and why you switched">
 

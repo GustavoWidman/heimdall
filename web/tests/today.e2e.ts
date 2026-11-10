@@ -167,6 +167,28 @@ test('the board answers the number keys and r', async ({ page, touch }) => {
 	).toBeVisible();
 });
 
+test('holding a number key juggles like holding a finger', async ({ page, touch }) => {
+	test.skip(touch, 'a keyboard is a desktop thing');
+	await planDay(page, ['one', 'two']);
+	await page.keyboard.press('1');
+	await expect(focus(page)).toContainText('watching');
+
+	await setClock(page, at(TODAY, '08:15'));
+	await page.keyboard.down('2');
+	await page.waitForTimeout(550);
+	await expect(focus(page), 'the hold fires before the key comes up').toContainText('juggling · 2');
+	await page.keyboard.up('2');
+	await expect(focus(page)).toContainText('juggling · 2');
+	await expect(switches(page)).toHaveAccessibleName('1');
+
+	await page.keyboard.down('2');
+	await page.waitForTimeout(550);
+	await page.keyboard.up('2');
+	await expect(focus(page), 'holding a juggled task lets go of it').toContainText('watching');
+	await expect(row(page, 'two')).toHaveAttribute('aria-pressed', 'false');
+	await expect(row(page, 'one')).toHaveAttribute('aria-pressed', 'true');
+});
+
 test('hover actions on a juggled row leave its text uncovered', async ({ page, touch }) => {
 	test.skip(touch, 'hover actions exist only with a mouse');
 	const long = 'a fairly long task title for the board';

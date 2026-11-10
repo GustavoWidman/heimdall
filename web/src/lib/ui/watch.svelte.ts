@@ -30,6 +30,9 @@ export type Moment = {
 
 const NEAR = 3 * HOUR;
 
+/** How long a finger, mouse button, or number key stays down before a press becomes a hold. */
+export const HOLD_MS = 400;
+
 function tasksOf(f: Focus): readonly TaskId[] {
 	return f.k === 'working' ? f.tasks : [];
 }
@@ -51,8 +54,11 @@ function dueSoon(from: Focus, to: Focus, now: number, task: (id: TaskId) => Task
 /** The gesture layer over the app: every tick goes through here so feedback can follow it. */
 export class Watch {
 	moment: Moment | null = $state(null);
+	/** The task whose number key is down and has not yet become a tap or a hold. */
+	keyed: TaskId | null = $state(null);
 	readonly app: App;
 	#seq = 0;
+	#key: { readonly code: string; readonly timer: ReturnType<typeof setTimeout> } | null = null;
 	readonly #byId: ReadonlyMap<TaskId, Task>;
 
 	constructor(app: App) {
@@ -72,6 +78,33 @@ export class Watch {
 		const juggled = f.k === 'working' && f.tasks.length > 1 && f.tasks.includes(task);
 		if (mode === 'tap') return this.act({ k: 'tap', task });
 		return this.act({ k: juggled ? 'release' : 'hold', task });
+	}
+
+	/**
+	 * A number key went down on a task. Let up quickly it taps; kept down for HOLD_MS it holds,
+	 * the same as a finger. Another key going down first drops this one.
+	 */
+	keyDown(code: string, task: TaskId): void {
+		this.keyCancel();
+		const timer = setTimeout(() => {
+			this.keyCancel();
+			this.press(task, 'hold');
+		}, HOLD_MS);
+		this.#key = { code, timer };
+		this.keyed = task;
+	}
+
+	keyUp(code: string): void {
+		const task = this.keyed;
+		if (this.#key?.code !== code || task === null) return;
+		this.keyCancel();
+		this.press(task, 'tap');
+	}
+
+	keyCancel(): void {
+		if (this.#key) clearTimeout(this.#key.timer);
+		this.#key = null;
+		this.keyed = null;
 	}
 
 	/** Records a gesture. Null when it changed nothing, such as a tap on the task in focus. */

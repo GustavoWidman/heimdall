@@ -1,16 +1,14 @@
 <!--
 	One task on the board. Tap switches to it. Pressing for 400 ms juggles it in, or lets go
-	of it when it is already part of a juggle; a ring fills while you press. Shift with a
-	click or Enter does the same without holding.
+	of it when it is already part of a juggle; a ring fills while you press, and while its
+	number key is down. Shift with a click or Enter does the same without holding.
 -->
 <script lang="ts">
 	import type { BoardRow } from '#lib/app/app.svelte.ts';
 	import { deadlineLabel, spent } from '#lib/ui/format.ts';
 	import Iris from '#lib/ui/Iris.svelte';
 	import Tally from '#lib/ui/Tally.svelte';
-	import { useCtx, type Moment } from '#lib/ui/watch.svelte.ts';
-
-	const HOLD_MS = 400;
+	import { HOLD_MS, useCtx, type Moment } from '#lib/ui/watch.svelte.ts';
 
 	let {
 		row,
@@ -133,7 +131,12 @@
 		<span class="kn mono" aria-hidden="true">{index < 9 ? index + 1 : ''}</span>
 		<span class="ic">
 			<Iris hues={[task.hue]} open={row.inFocus} size={30} />
-			<svg class="hold" class:pressing viewBox="0 0 40 40" aria-hidden="true">
+			<svg
+				class="hold"
+				class:pressing={pressing || watch.keyed === task.id}
+				viewBox="0 0 40 40"
+				aria-hidden="true"
+			>
 				<circle cx="20" cy="20" r="18.5" pathLength="1" />
 			</svg>
 			{#key ripples}{#if ripples}<span class="ripple" aria-hidden="true"></span>{/if}{/key}
