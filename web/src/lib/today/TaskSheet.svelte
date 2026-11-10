@@ -8,7 +8,16 @@
 	import { freeHue, PALETTE } from '#lib/ui/hue.ts';
 	import { useCtx } from '#lib/ui/watch.svelte.ts';
 
-	let { task, onclose }: { task: Task | null; onclose: () => void } = $props();
+	let {
+		task,
+		onclose,
+		planToday = true
+	}: {
+		task: Task | null;
+		onclose: () => void;
+		/** A new task goes on today's board; off, it joins the backlog only. */
+		planToday?: boolean;
+	} = $props();
 
 	const { app, watch } = useCtx();
 	const today = $derived(app.today);
@@ -61,7 +70,7 @@
 					title,
 					...f,
 					deadline: f.deadline as Instant | null,
-					planFor: today.day
+					...(planToday ? { planFor: today.day } : {})
 				};
 		const d = app.do(intent);
 		if (d.ok) onclose();
@@ -182,7 +191,7 @@
 
 	<div class="acts">
 		<button type="button" class="btn quiet" onclick={onclose}>cancel</button>
-		<button class="btn primary" disabled={!title.trim()}>{task ? 'save' : 'add to today'}</button>
+		<button class="btn primary" disabled={!title.trim()}>{task ? 'save' : planToday ? 'add to today' : 'add task'}</button>
 	</div>
 </form>
 
