@@ -167,6 +167,34 @@ test('the board answers the number keys and r', async ({ page, touch }) => {
 	).toBeVisible();
 });
 
+test('hover actions on a juggled row leave its text uncovered', async ({ page, touch }) => {
+	test.skip(touch, 'hover actions exist only with a mouse');
+	const long = 'a fairly long task title for the board';
+	await planDay(page, [long, 'short']);
+	await row(page, 'short').click();
+	await setClock(page, at(TODAY, '09:40'));
+	await page.keyboard.press('Shift+1');
+	await expect(focus(page)).toContainText('juggling · 2');
+	await row(page, long).hover();
+	const item = page.getByRole('region', { name: "today's watch" }).getByRole('listitem').first();
+	await expect(item.getByRole('button', { name: 'let go' })).toBeVisible();
+	await page.waitForTimeout(400);
+	const covered = await item.evaluate((li) => {
+		const acts = li.querySelector('.acts')!.getBoundingClientRect();
+		const column = li.querySelector('.t')!.getBoundingClientRect();
+		const texts = [...li.querySelectorAll('.t span')].filter((s) => s.children.length === 0);
+		return texts
+			.filter((s) => {
+				const r = s.getBoundingClientRect();
+				const left = Math.max(r.left, column.left);
+				const right = Math.min(r.right, column.right);
+				return right > left && right > acts.left && left < acts.right;
+			})
+			.map((s) => s.textContent?.trim());
+	});
+	expect(covered, 'text running under the hover actions').toEqual([]);
+});
+
 test('a tap survives closing the page right after it', async ({ page, touch }) => {
 	await planDay(page, ['durable']);
 	await tap(row(page, 'durable'), touch);
