@@ -40,8 +40,8 @@
 	<h2>forgot to tick</h2>
 	<p class="sum">it happens. say when, and it slots into the day.</p>
 
-	<fieldset class="fld">
-		<legend class="nm">switched to</legend>
+	<div class="fld" role="radiogroup" aria-labelledby="forgot-what">
+		<span class="nm" id="forgot-what">switched to</span>
 		<div class="picks">
 			{#each rows as r (r.task.id)}
 				<label class="pick hue" style:--h={r.task.hue}>
@@ -56,7 +56,7 @@
 				<span>rest</span>
 			</label>
 		</div>
-	</fieldset>
+	</div>
 
 	<div class="fld">
 		<label class="nm" for="forgot-time">at</label>
@@ -99,9 +99,6 @@
 	.nm {
 		font-size: 14px;
 		font-weight: 520;
-	}
-	legend.nm {
-		margin-bottom: 10px;
 	}
 	.field {
 		max-width: 160px;

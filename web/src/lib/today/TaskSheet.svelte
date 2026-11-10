@@ -88,8 +88,8 @@
 		{#if problem?.field === 'title'}<span class="problem" role="alert">{problem.text}</span>{/if}
 	</label>
 
-	<fieldset class="fld">
-		<legend class="nm">color</legend>
+	<div class="fld" role="radiogroup" aria-labelledby="task-color">
+		<span class="nm" id="task-color">color</span>
 		<div class="swatches">
 			{#each swatches as h (h)}
 				<label class="swatch hue" style:--h={h}>
@@ -98,7 +98,7 @@
 				</label>
 			{/each}
 		</div>
-	</fieldset>
+	</div>
 
 	<div class="fld">
 		<label class="nm" for="deadline">deadline</label>
@@ -205,9 +205,6 @@
 	.nm {
 		font-size: 14px;
 		font-weight: 520;
-	}
-	legend.nm {
-		margin-bottom: 8px;
 	}
 	.problem {
 		font-size: 13px;
