@@ -173,6 +173,8 @@ export type Totals = {
 	readonly focusMs: number;
 	/** Two or more tasks held. */
 	readonly juggleMs: number;
+	/** Time weighted by the tasks held at once: a minute juggling three counts three. */
+	readonly loadMs: number;
 	readonly restMs: number;
 };
 
@@ -208,7 +210,7 @@ function taskDay(perTask: Map<TaskId, MutableTaskDay>, task: TaskId): MutableTas
 
 function accrue(
 	perTask: Map<TaskId, MutableTaskDay>,
-	totals: { focusMs: number; juggleMs: number; restMs: number },
+	totals: { focusMs: number; juggleMs: number; loadMs: number; restMs: number },
 	focus: Focus,
 	ms: number
 ): void {
@@ -216,6 +218,7 @@ function accrue(
 	if (focus.k !== 'working') return;
 	totals.focusMs += ms;
 	if (focus.tasks.length > 1) totals.juggleMs += ms;
+	totals.loadMs += ms * focus.tasks.length;
 	for (const t of focus.tasks) taskDay(perTask, t).ms += ms;
 }
 
@@ -236,7 +239,7 @@ export function deriveDay(
 	const segments: Segment[] = [];
 	const transitions: Transition[] = [];
 	const perTask = new Map<TaskId, MutableTaskDay>();
-	const totals = { focusMs: 0, juggleMs: 0, restMs: 0 };
+	const totals = { focusMs: 0, juggleMs: 0, loadMs: 0, restMs: 0 };
 	let state = carry;
 	let cursor = range.start;
 	let segMark: MarkId | null = null;

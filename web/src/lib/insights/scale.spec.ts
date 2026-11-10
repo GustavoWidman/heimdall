@@ -58,6 +58,7 @@ describe('reasonBuckets', () => {
 		switches: urge + 1,
 		focusMs: 0,
 		juggleMs: 0,
+		loadMs: 0,
 		restMs: 0,
 		reasons: { done: 0, blocked: 0, urge, pulled: 0, untagged: 1 },
 		stretchMedianMs: null,
