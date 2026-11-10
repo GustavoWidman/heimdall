@@ -19,6 +19,11 @@
 		return all.includes(current) ? all : [current, ...all];
 	});
 	const hours = Array.from({ length: 24 }, (_, h) => h);
+	const bounces = $derived.by(() => {
+		const all = [0, 1, 2, 3, 5, 10, 15];
+		const current = app.settings.bounceMinutes as number;
+		return all.includes(current) ? all : [...all, current].sort((a, b) => a - b);
+	});
 
 	const syncNow = $derived(Math.floor(app.now / 30_000) * 30_000);
 	const signedIn = $derived(app.sync.kind !== 'needs-login');
@@ -74,6 +79,28 @@
 				{/each}
 			</div>
 		</div>
+	</section>
+
+	<section aria-labelledby="s-switching">
+		<h2 class="label" id="s-switching">switching</h2>
+		<label class="row">
+			<span class="what">
+				<span>quick taps juggle</span>
+				<span class="hint">
+					a task you leave again within this long joins a juggle with what you held, instead of
+					replacing it. every day re-reads, past ones too.
+				</span>
+			</span>
+			<select
+				class="field pick mono"
+				value={app.settings.bounceMinutes}
+				onchange={(e) => app.do({ k: 'settings', bounceMinutes: Number(e.currentTarget.value) })}
+			>
+				{#each bounces as m (m)}
+					<option value={m}>{m === 0 ? 'off' : `${m} min`}</option>
+				{/each}
+			</select>
+		</label>
 	</section>
 
 	<section aria-labelledby="s-days">
