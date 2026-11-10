@@ -18,7 +18,10 @@
           type = lib.types.package;
           default = self.packages.${pkgs.stdenv.hostPlatform.system}.default;
           defaultText = lib.literalExpression "heimdall.packages.\${system}.default";
-          description = "The heimdall package, with the web app it serves.";
+          description = ''
+            The heimdall package, with the web app it serves as `passthru.web` and the Caddy
+            snippet in `share/heimdall/heimdall.caddy`.
+          '';
         };
 
         listen = lib.mkOption {
@@ -39,6 +42,18 @@
           '';
         };
 
+        virtualHost = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          default = null;
+          example = "heimdall.example.com";
+          description = ''
+            Host name of a Caddy virtual host for heimdall. Caddy serves the web app from its
+            files, with long-lived caching for hashed assets, content-hash ETags, and security
+            headers, and proxies only /api to the server. TLS directives for the host can go
+            in `services.caddy.virtualHosts.<host>.extraConfig`, which is merged with this.
+          '';
+        };
+
         passwordHashFile = lib.mkOption {
           type = lib.types.str;
           example = "/run/agenix/heimdall-password-hash";
@@ -51,6 +66,13 @@
       };
 
       config = lib.mkIf cfg.enable {
+        services.caddy = lib.mkIf (cfg.virtualHost != null) {
+          enable = lib.mkDefault true;
+          virtualHosts.${cfg.virtualHost}.extraConfig = ''
+            import ${cfg.package}/share/heimdall/heimdall.caddy ${cfg.package.web} ${cfg.listen}
+          '';
+        };
+
         assertions = [
           {
             assertion = lib.hasPrefix "/var/lib/" cfg.dataDir;
@@ -120,7 +142,8 @@
       };
     };
 
-  # Boots a VM with the module, then logs in, syncs, restarts, and syncs again.
+  # Boots a VM with the module, then logs in, syncs, restarts, and syncs again; then goes
+  # through the Caddy virtual host.
   perSystem =
     {
       pkgs,
@@ -138,6 +161,7 @@
             services.heimdall = {
               enable = true;
               package = self'.packages.heimdall;
+              virtualHost = "http://localhost:8080";
               passwordHashFile = toString (
                 pkgs.runCommand "heimdall-test-password-hash" { } ''
                   echo hunter2 | ${lib.getExe self'.packages.heimdall} hash-password > $out
@@ -180,6 +204,36 @@
             assert again["ops"] == [{"seq": 1, "op": json.loads(op)}], again
 
             machine.succeed(f"curl -sf {base}/day/2026-11-09 | grep -q '<html'")
+
+            caddy = "http://localhost:8080"
+            machine.wait_for_unit("caddy.service")
+            machine.wait_for_open_port(8080)
+            machine.succeed(f"curl -sf {caddy}/api/health")
+            again = json.loads(machine.succeed(
+                f"curl -sf -H 'cookie: {cookie}' -H 'content-type: application/json' "
+                f"-d '{{\"after\":0,\"ops\":[]}}' {caddy}/api/sync"
+            ))
+            assert again["epoch"] == first["epoch"], again
+
+            index = machine.succeed(f"curl -sf -D - -o /dev/null -H 'accept-encoding: br' {caddy}/day/2026-11-09").lower()
+            assert "cache-control: no-cache" in index, index
+            assert "content-encoding: br" in index, index
+            assert "x-content-type-options: nosniff" in index, index
+            etag = next(l.split(":", 1)[1].strip() for l in index.splitlines() if l.startswith("etag:"))
+            assert len(etag) == 26 and etag.startswith('"'), f"a content-hash ETag: {etag}"
+            unchanged = machine.succeed(
+                f"curl -s -o /dev/null -w '%{{http_code}}' -H 'accept-encoding: br' "
+                f"-H 'if-none-match: {etag}' {caddy}/"
+            )
+            assert unchanged == "304", unchanged
+
+            asset = machine.succeed(
+                f"find ${self'.packages.heimdall.web}/_app/immutable -name '*.js' -print -quit"
+            ).strip().removeprefix("${self'.packages.heimdall.web}")
+            headers = machine.succeed(f"curl -sf -D - -o /dev/null {caddy}{asset}").lower()
+            assert "max-age=31536000, immutable" in headers, headers
+            machine.fail(f"curl -sf {caddy}/_app/immutable/missing.js")
+            machine.fail(f"curl -sf {caddy}/index.html.etag")
           '';
         };
       };

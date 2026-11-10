@@ -86,7 +86,8 @@
       };
 
       # The server with --web-dir defaulting to the web app above. The flag and
-      # HEIMDALL_WEB_DIR still override it.
+      # HEIMDALL_WEB_DIR still override it. share/heimdall/heimdall.caddy serves the same
+      # files from Caddy, which proxies only /api to the server.
       heimdall =
         pkgs.runCommand "heimdall-${server.version}"
           {
@@ -101,6 +102,7 @@
           ''
             makeBinaryWrapper ${lib.getExe server} $out/bin/heimdall \
               --set-default HEIMDALL_WEB_DIR ${web}
+            install -Dm644 ${./heimdall.caddy} $out/share/heimdall/heimdall.caddy
           '';
     in
     {
@@ -122,6 +124,26 @@
           }
         );
         heimdall-fmt = craneLib.cargoFmt { inherit (args) src; };
+
+        # Parses and provisions the Caddy snippet the way the NixOS module imports it.
+        heimdall-caddy-config =
+          let
+            caddyfile = pkgs.writeText "Caddyfile" ''
+              {
+                admin off
+                auto_https off
+                persist_config off
+              }
+              http://heimdall.example {
+                import ${heimdall}/share/heimdall/heimdall.caddy ${web} 127.0.0.1:7979
+              }
+            '';
+          in
+          pkgs.runCommand "heimdall-caddy-config" { nativeBuildInputs = [ pkgs.caddy ]; } ''
+            export HOME=$TMPDIR XDG_DATA_HOME=$TMPDIR XDG_CONFIG_HOME=$TMPDIR
+            caddy validate --adapter caddyfile --config ${caddyfile}
+            touch $out
+          '';
 
         # Type check and unit tests. The tests read contract/sync.json beside web/.
         heimdall-web-test = bunLib.mkDerivation {

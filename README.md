@@ -107,25 +107,25 @@ the flake exports `packages.<system>.heimdall`, the server with the web app bake
 
   services.heimdall = {
     enable = true;
-    listen = "127.0.0.1:7979";
+    virtualHost = "heimdall.example.com";
     passwordHashFile = config.age.secrets.heimdall-hash.path;
   };
-
-  services.caddy.virtualHosts."heimdall.example.com".extraConfig = ''
-    reverse_proxy 127.0.0.1:7979
-  '';
 }
 ```
+
+with `virtualHost` set, caddy serves the web app straight from its files and proxies only `/api` to the server. hashed assets are cached for a year, everything else is revalidated by a content-hash etag, and every response carries security headers. the snippet behind it is `share/heimdall/heimdall.caddy` in the package, for a caddy configured by hand.
 
 | option | default | description |
 | ------ | ------- | ----------- |
 | `enable` | `false` | run the sync server and serve the web app |
 | `package` | this flake's `heimdall` | the server, with the web app it serves |
 | `listen` | `127.0.0.1:7979` | address and port to bind |
+| `virtualHost` | none | a caddy host that serves the app and proxies `/api` |
 | `dataDir` | `/var/lib/heimdall` | where the sqlite database lives |
 | `passwordHashFile` | none | an argon2id hash from `heimdall hash-password` |
 
 the unit runs as a dynamic user with a hardened sandbox, and the module has a vm test (`checks.x86_64-linux.heimdall-module`).
+
 
 ## how it works
 
