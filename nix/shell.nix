@@ -16,6 +16,18 @@
         ];
         commands = [
           {
+            name = "perf";
+            help = "build the release server and the web app, then run web/scripts/perf.ts with the given flags";
+            command = ''
+              set -eu
+              cd "$PRJ_ROOT"
+              cargo build --release
+              cd web
+              bun run build
+              bun scripts/perf.ts "$@"
+            '';
+          }
+          {
             name = "lock-web";
             help = "regenerate web/.bun.nix from web/bun.lock";
             # bun2nix 2.1.2 refuses lockfileVersion 2, although the package layout it reads
