@@ -17,11 +17,15 @@
 		busy = true;
 		problem = null;
 		try {
-			if (await app.login(password)) {
+			const result = await app.login(password);
+			if (result.k === 'ok') {
 				await goto(resolve('/'));
 				return;
 			}
-			problem = 'that is not the password.';
+			problem =
+				result.k === 'wait'
+					? `too many tries in a row. try again in ${result.seconds} s.`
+					: 'that is not the password.';
 		} catch {
 			problem = 'the server is out of reach. heimdall keeps working offline meanwhile.';
 		} finally {

@@ -7,6 +7,10 @@ import { parseOp, type Hlc, type Op } from './op';
  * and merge ignores ops this device has seen, so a lost response costs only a resend.
  */
 
+/** A sign-in's answer. After wrong guesses the server asks for a wait before the next. */
+export type LoginResult =
+	{ readonly k: 'ok' } | { readonly k: 'wrong' } | { readonly k: 'wait'; readonly seconds: number };
+
 export type SyncStatus =
 	| { readonly kind: 'idle'; readonly lastOk: number | null }
 	| { readonly kind: 'syncing' }
@@ -169,17 +173,20 @@ export class Sync {
 		return this.#running;
 	}
 
-	async login(password: string): Promise<boolean> {
+	async login(password: string): Promise<LoginResult> {
 		const res = await this.#env.fetch(`${this.#base}/api/login`, {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
 			body: JSON.stringify({ password }),
 			credentials: 'same-origin'
 		});
-		if (res.status !== 204) return false;
+		if (res.status === 429) {
+			return { k: 'wait', seconds: Number(res.headers.get('retry-after')) || 1 };
+		}
+		if (res.status !== 204) return { k: 'wrong' };
 		this.#set({ kind: 'idle', lastOk: null });
 		void this.wake();
-		return true;
+		return { k: 'ok' };
 	}
 
 	#retry(): void {

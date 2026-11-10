@@ -36,7 +36,7 @@ import { addDays, dayOf, daysBetween, rangeOf } from '../domain/time';
 import { parseEntity, type Kind, type Rec } from '../replica/op';
 import { Replica } from '../replica/replica.svelte';
 import type { Touched } from '../replica/store';
-import { Sync, type SyncEnv, type SyncStatus } from '../replica/sync';
+import { Sync, type LoginResult, type SyncEnv, type SyncStatus } from '../replica/sync';
 
 export type { BoardRow, PlanSuggestions } from '../domain/board';
 export type { CheckIn, CheckInKey, FieldDef } from '../domain/checkin';
@@ -64,7 +64,7 @@ export type {
 	SeriesPoint,
 	TaskTotals
 } from '../domain/stats';
-export type { SyncStatus } from '../replica/sync';
+export type { LoginResult, SyncStatus } from '../replica/sync';
 
 /** A day ready to show: its timeline, board, check-in, and every mark for the edit list. */
 export type DayData = {
@@ -399,7 +399,7 @@ export class App {
 		return decision;
 	}
 
-	login(password: string): Promise<boolean> {
+	login(password: string): Promise<LoginResult> {
 		return this.#sync.login(password);
 	}
 

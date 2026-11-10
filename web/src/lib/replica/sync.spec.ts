@@ -204,8 +204,8 @@ describe('the sync loop', () => {
 		await phone.sync.wake();
 		expect(server.requests).toHaveLength(0);
 
-		expect(await phone.sync.login('wrong')).toBe(false);
-		expect(await phone.sync.login('hunter2')).toBe(true);
+		expect(await phone.sync.login('wrong')).toEqual({ k: 'wrong' });
+		expect(await phone.sync.login('hunter2')).toEqual({ k: 'ok' });
 		await phone.sync.wake();
 		expect(server.rows).toHaveLength(2);
 		expect(phone.sync.status.kind).toBe('idle');
