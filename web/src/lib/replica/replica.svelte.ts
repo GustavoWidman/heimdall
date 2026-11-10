@@ -140,7 +140,10 @@ export class Replica {
 		this.#show(kind, await this.#store.read(kind, { lo, hi, index: true }));
 	}
 
-	/** Called after this device's outbox or records change. Returns an unsubscribe. */
+	/**
+	 * Called after this device's outbox gains ops, from this tab or another. Ops pulled from
+	 * the server do not call it: they leave nothing to push. Returns an unsubscribe.
+	 */
 	onChange(listener: () => void): () => void {
 		this.#listeners.add(listener);
 		return () => this.#listeners.delete(listener);
@@ -190,7 +193,7 @@ export class Replica {
 			touched: touched.map((t) => [t.kind, t.next.id] as const),
 			outbox
 		} satisfies Message);
-		this.#notify();
+		if (outbox) this.#notify();
 	}
 
 	async #heard(msg: Message): Promise<void> {
@@ -204,7 +207,7 @@ export class Replica {
 			);
 		}
 		this.#meta = await this.#store.meta();
-		this.#notify();
+		if (msg.outbox) this.#notify();
 	}
 
 	/** Ops waiting for the server, oldest first. */
