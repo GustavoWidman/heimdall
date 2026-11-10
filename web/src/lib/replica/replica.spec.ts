@@ -64,7 +64,7 @@ describe('commit', () => {
 		const r = await openDay(fresh(), {
 			invalidate: (t) => (t.kind === 'mark' ? ['2026-11-09'] : [])
 		});
-		await r.store.putAggregates([{ day: '2026-11-09' }, { day: '2026-11-08' }]);
+		await r.store.putAggregates([{ day: '2026-11-09' }, { day: '2026-11-08' }], 0);
 		r.commit([markChange(notebookMarks[0])]);
 		await r.flushed();
 		expect(await r.store.aggregates(['2026-11-09', '2026-11-08'])).toEqual([

@@ -14,6 +14,8 @@ export type Meta = {
 	readonly epoch: string | null;
 	/** The highest clock this device has seen, the floor for its next clock. */
 	readonly maxHlc: Hlc | null;
+	/** Bumped by every write that makes an aggregate row stale. */
+	readonly aggGen: number;
 };
 
 /** A record a transaction changed, with what it was before. */
@@ -29,7 +31,7 @@ export const INDEXES: { readonly [K in Kind]?: { readonly field: string } } = {
 
 const VERSION = 1;
 const META_KEY = 'meta';
-const EMPTY_META: Meta = { cursor: 0, epoch: null, maxHlc: null };
+const EMPTY_META: Meta = { cursor: 0, epoch: null, maxHlc: null, aggGen: 0 };
 const BOOKKEEPING = ['outbox', 'orphan', 'meta', 'dayAgg'] as const;
 
 function done<T>(req: IDBRequest<T>): Promise<T> {
@@ -117,10 +119,21 @@ export class Store {
 		return Promise.all(days.map((d) => done(store.get(d) as IDBRequest<T | undefined>)));
 	}
 
-	async putAggregates(rows: readonly { readonly day: string }[]): Promise<void> {
-		const tx = this.#db.transaction('dayAgg', 'readwrite');
-		for (const row of rows) tx.objectStore('dayAgg').put(row);
+	/**
+	 * Store recomputed rows, unless a write made any aggregate stale since `gen` was read:
+	 * the rows may predate that write, and storing them would hide it.
+	 */
+	async putAggregates(rows: readonly { readonly day: string }[], gen: number): Promise<boolean> {
+		const tx = this.#db.transaction(['dayAgg', 'meta'], 'readwrite');
+		let stored = false;
+		const metaReq = tx.objectStore('meta').get(META_KEY) as IDBRequest<Meta | undefined>;
+		metaReq.onsuccess = () => {
+			if ((metaReq.result ?? EMPTY_META).aggGen !== gen) return;
+			for (const row of rows) tx.objectStore('dayAgg').put(row);
+			stored = true;
+		};
 		await finished(tx);
+		return stored;
 	}
 
 	/**
@@ -134,7 +147,7 @@ export class Store {
 		readonly enqueue?: boolean;
 		readonly acked?: readonly Hlc[];
 		readonly dropOrphans?: readonly Hlc[];
-		readonly meta?: Partial<Omit<Meta, 'maxHlc'>>;
+		readonly meta?: Partial<Pick<Meta, 'cursor' | 'epoch'>>;
 		readonly invalidate?: Invalidate;
 	}): Promise<Touched[]> {
 		const tx = this.#db.transaction([...KINDS, ...BOOKKEEPING], 'readwrite');
@@ -142,6 +155,7 @@ export class Store {
 		const agg = tx.objectStore('dayAgg');
 		const groups = new Map<string, { kind: Kind; id: string; ops: Op[] }>();
 		let max: Hlc | null = null;
+		let stale = false;
 		for (const op of batch.ops) {
 			max = maxOf(max, op.hlc);
 			if (!isKind(op.kind)) {
@@ -164,7 +178,10 @@ export class Store {
 				store.put(next);
 				const t = { kind, prev, next };
 				touched.push(t);
-				for (const day of batch.invalidate?.(t) ?? []) agg.delete(day);
+				for (const day of batch.invalidate?.(t) ?? []) {
+					agg.delete(day);
+					stale = true;
+				}
 			};
 		}
 		if (batch.enqueue) for (const op of batch.ops) tx.objectStore('outbox').put(op);
@@ -174,7 +191,8 @@ export class Store {
 		const metaReq = metaStore.get(META_KEY) as IDBRequest<Meta | undefined>;
 		metaReq.onsuccess = () => {
 			const cur = metaReq.result ?? EMPTY_META;
-			metaStore.put({ ...cur, ...batch.meta, maxHlc: maxOf(cur.maxHlc, max) }, META_KEY);
+			const aggGen = cur.aggGen + (stale ? 1 : 0);
+			metaStore.put({ ...cur, ...batch.meta, maxHlc: maxOf(cur.maxHlc, max), aggGen }, META_KEY);
 		};
 		await finished(tx);
 		return touched;
