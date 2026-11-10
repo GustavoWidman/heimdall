@@ -113,9 +113,11 @@
 							class="row"
 							class:today={x.d === today}
 							href={resolve('/history/[day]', { day: x.d })}
-							aria-label="{label}: {ready?.view.switches ?? 0} switches, open the day"
 						>
-							<span class="d"
+							<span class="visually-hidden"
+								>{label}: {ready?.view.switches ?? 0} switches, open the day</span
+							>
+							<span class="d" aria-hidden="true"
 								><span>{WEEKDAYS[i]}</span><b class="mono">{Number(x.d.slice(8))}</b></span
 							>
 							<Strip
@@ -124,7 +126,7 @@
 								now={x.d === today ? now : null}
 								hueOf={watch.hueOf}
 							/>
-							<span class="n mono">{ready ? ready.view.switches : ''}</span>
+							<span class="n mono" aria-hidden="true">{ready ? ready.view.switches : ''}</span>
 							<Strain value={ready?.checkIn.strain} />
 						</a>
 					{:else}
@@ -249,7 +251,12 @@
 		background: var(--ink);
 		color: var(--bg);
 	}
-	.ahead {
+	/* Days still ahead step back in color rather than opacity, so their dates stay legible. */
+	.ahead .d b {
+		font-weight: 400;
+		color: var(--ink-3);
+	}
+	.ahead :global(.strip) {
 		opacity: 0.45;
 	}
 	.n {

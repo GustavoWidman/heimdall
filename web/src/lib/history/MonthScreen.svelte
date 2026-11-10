@@ -100,13 +100,14 @@
 						style:--lv={c.lv ?? 0}
 						style:grid-column-start={i === 0 ? lead + 1 : null}
 						href={resolve('/history/[day]', { day: c.d })}
-						aria-label={c.label}
 					>
-						<span class="n mono">{c.n}</span>
+						<span class="visually-hidden">{c.label}</span>
+						<span class="n mono" aria-hidden="true">{c.n}</span>
 						{#if c.s}
 							<span class="foot">
 								<DayMarks checkIn={c.s.checkIn} />
-								{#if c.lv !== null}<span class="sw mono">{c.s.agg.switches}</span>{/if}
+								{#if c.lv !== null}<span class="sw mono" aria-hidden="true">{c.s.agg.switches}</span
+									>{/if}
 							</span>
 						{/if}
 					</a>
@@ -189,7 +190,7 @@
 	}
 	.ahead {
 		box-shadow: none;
-		color: var(--ink-4);
+		color: var(--ink-3);
 	}
 	.n {
 		font-size: 11.5px;
@@ -204,7 +205,6 @@
 	.sw {
 		margin-left: auto;
 		font-size: 10px;
-		opacity: 0.85;
 	}
 	.legend {
 		display: flex;
