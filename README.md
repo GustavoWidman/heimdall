@@ -32,6 +32,7 @@ multitasking is the hard part of a notebook. when you bounce between two things 
 - **tap** a task to make it your focus. **hold** a task to add it to what you're already holding. holding two or more is a **juggle**. hold a task that's already in the juggle to **let go** of it.
 - **rest** is a break. it's not a failure, and coming back to the same thing afterwards is a resume, not a switch. **end the day** when you're done, so tomorrow starts clean.
 - a **switch** is a moment something new enters your head. bouncing inside a juggle isn't counted bounce by bounce. it shows up as juggle time instead, which is its own kind of strain.
+- quick taps juggle too. tap onto a task and leave it again within five minutes, and it joins what you were holding instead of replacing it, so a glance at chat and back is a short juggle, not two switches. the window is a setting, and changing it re-reads every day.
 - **load** weighs focus time by how many tasks you hold at once: a minute juggling three counts as three. next to plain focus it shows how crowded a day was, not just how long.
 - a **tick** is still the notebook's unit. a task gets one every time it comes into focus, including when you pick it back up after a break.
 
