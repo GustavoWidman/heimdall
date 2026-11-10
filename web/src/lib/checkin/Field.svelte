@@ -12,15 +12,19 @@
 		key,
 		def,
 		value,
+		today,
 		onset
 	}: {
 		key: CheckInKey;
 		def: FieldDef;
 		value: unknown;
+		/** Asked on the day itself, rather than looking back. */
+		today: boolean;
 		onset: (value: unknown) => void;
 	} = $props();
 
 	const id = $derived(`q-${key}`);
+	const question = $derived(today ? def.question.today : def.question.past);
 	const answered = $derived(value !== undefined);
 
 	function pick(v: unknown) {
@@ -58,9 +62,9 @@
 
 <div class="q" class:answered>
 	<div class="ask">
-		<span class="text" {id}>{def.question}</span>
+		<span class="text" {id}>{question}</span>
 		{#if answered && def.kind !== 'text'}
-			<button class="clear" onclick={() => onset(null)} aria-label="clear {def.question}">
+			<button class="clear" onclick={() => onset(null)} aria-label="clear {question}">
 				clear
 			</button>
 		{/if}

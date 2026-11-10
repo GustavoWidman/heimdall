@@ -87,7 +87,13 @@
 		<div class="cols">
 			<section class="core" aria-label="the day">
 				{#each SECTIONS.shown as key (key)}
-					<Field {key} def={CHECKIN_FIELDS[key]} value={checkIn[key]} onset={(v) => set(key, v)} />
+					<Field
+						{key}
+						def={CHECKIN_FIELDS[key]}
+						value={checkIn[key]}
+						today={isToday}
+						onset={(v) => set(key, v)}
+					/>
 				{/each}
 			</section>
 
@@ -113,6 +119,7 @@
 								{key}
 								def={CHECKIN_FIELDS[key]}
 								value={checkIn[key]}
+								today={isToday}
 								onset={(v) => set(key, v)}
 							/>
 						{/each}
