@@ -5,7 +5,14 @@
 	import DayPager from '#lib/history/DayPager.svelte';
 	import DayPanel from '#lib/history/DayPanel.svelte';
 	import PeriodHead from '#lib/history/PeriodHead.svelte';
-	import { addDays, isDayKey, isoWeek, monthKeyOf, monthTitle } from '#lib/history/period.ts';
+	import {
+		addDays,
+		isDayKey,
+		isoWeek,
+		monthKeyOf,
+		monthTitle,
+		weekOf
+	} from '#lib/history/period.ts';
 	import { dayLabel } from '#lib/ui/format.ts';
 	import { useCtx } from '#lib/ui/watch.svelte.ts';
 
@@ -56,8 +63,8 @@
 	onstep={(dir) => pager?.step(dir)}
 >
 	{#snippet kicker()}
-		<span>week {isoWeek(day)}</span>
-		<span>{monthTitle(monthKeyOf(day))}</span>
+		<a href={resolve('/week/[key]', { key: weekOf(day).from })}>week {isoWeek(day)}</a>
+		<a href={resolve('/month/[key]', { key: monthKeyOf(day) })}>{monthTitle(monthKeyOf(day))}</a>
 	{/snippet}
 	{#snippet title()}
 		{#if day === today}
