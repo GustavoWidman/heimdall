@@ -23,7 +23,7 @@ import { hourIn, rangeOf, weekday } from './time';
 const HOUR = 3_600_000;
 
 /** Bump when aggregateDay changes meaning, so cached rows recompute. */
-export const STATS_VERSION = 2;
+export const STATS_VERSION = 3;
 
 /** What a cached aggregate was computed under. A row with another basis is stale. */
 export function basisOf(s: Settings): string {
@@ -55,6 +55,8 @@ export type DayAggregate = {
 	readonly ticks: number;
 	readonly focusMs: number;
 	readonly juggleMs: number;
+	/** Time weighted by the tasks held at once. See Totals. */
+	readonly loadMs: number;
 	readonly restMs: number;
 	readonly reasons: ReasonCounts;
 	/** Switches per local hour, index 0..23. */
@@ -158,6 +160,7 @@ export function aggregateDay(view: DayView, s: Settings, now?: Instant): DayAggr
 		ticks: view.ticks,
 		focusMs: totals.focusMs,
 		juggleMs: totals.juggleMs,
+		loadMs: totals.loadMs,
 		restMs: totals.restMs,
 		reasons,
 		switchesByHour,
@@ -212,6 +215,7 @@ export type RangeTotals = {
 	readonly ticks: number;
 	readonly focusMs: number;
 	readonly juggleMs: number;
+	readonly loadMs: number;
 	readonly restMs: number;
 	readonly reasons: ReasonCounts;
 	/** Switches per hour of focus. Null with no focus time. */
@@ -224,12 +228,14 @@ export function rollup(aggs: readonly DayAggregate[]): RangeTotals {
 	let ticks = 0;
 	let focusMs = 0;
 	let juggleMs = 0;
+	let loadMs = 0;
 	let restMs = 0;
 	for (const a of aggs) {
 		switches += a.switches;
 		ticks += a.ticks;
 		focusMs += a.focusMs;
 		juggleMs += a.juggleMs;
+		loadMs += a.loadMs;
 		restMs += a.restMs;
 		for (const r of [...REASONS, 'untagged'] as const) reasons[r] += a.reasons[r];
 	}
@@ -239,6 +245,7 @@ export function rollup(aggs: readonly DayAggregate[]): RangeTotals {
 		ticks,
 		focusMs,
 		juggleMs,
+		loadMs,
 		restMs,
 		reasons,
 		switchesPerFocusHour: focusMs > 0 ? switches / (focusMs / HOUR) : null
@@ -252,6 +259,7 @@ export type SeriesPoint = {
 	readonly switches: number;
 	readonly focusMs: number;
 	readonly juggleMs: number;
+	readonly loadMs: number;
 	readonly restMs: number;
 	readonly reasons: ReasonCounts;
 	readonly stretchMedianMs: number | null;
@@ -283,6 +291,7 @@ export function series(days: readonly DaySummary[]): SeriesPoint[] {
 		switches: agg.switches,
 		focusMs: agg.focusMs,
 		juggleMs: agg.juggleMs,
+		loadMs: agg.loadMs,
 		restMs: agg.restMs,
 		reasons: agg.reasons,
 		stretchMedianMs: median(agg.stretches),

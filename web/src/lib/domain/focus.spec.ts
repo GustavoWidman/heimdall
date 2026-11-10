@@ -260,12 +260,18 @@ describe('a realistic notebook day', () => {
 		expect(view.ticks).toBe(notebook.expected.ticks);
 	});
 
-	it('totals focus, juggle, and rest time', () => {
+	it('totals focus, juggle, load, and rest time', () => {
 		expect(view.totals).toEqual({
 			focusMs: notebook.expected.focusMs,
 			juggleMs: notebook.expected.juggleMs,
+			loadMs: notebook.expected.loadMs,
 			restMs: notebook.expected.restMs
 		});
+	});
+
+	it('weighs load by the tasks held, the same as summing every task', () => {
+		const perTask = [...view.perTask.values()].reduce((sum, d) => sum + d.ms, 0);
+		expect(view.totals.loadMs).toBe(perTask);
 	});
 
 	it('breaks the day down per task', () => {
@@ -297,6 +303,7 @@ describe('a live day', () => {
 		const live = liveTotals(view, at('10:15'));
 		expect(live.focusMs).toBe(75 * MIN);
 		expect(live.juggleMs).toBe(15 * MIN);
+		expect(live.loadMs).toBe(90 * MIN);
 		expect(live.perTask.get(b)?.ms).toBe(15 * MIN);
 		expect(focusAt(view, at('11:00'))).toEqual(focusOf(a, b));
 	});

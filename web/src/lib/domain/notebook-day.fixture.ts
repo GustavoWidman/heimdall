@@ -92,6 +92,8 @@ export const expected = {
 	ticks: 15,
 	focusMs: 560 * MIN,
 	juggleMs: 155 * MIN,
+	// focus plus one extra per added task: 10 + 5 + 2*10 + 10 + 60 + 60 over the juggles
+	loadMs: 725 * MIN,
 	restMs: 80 * MIN,
 	perTask: new Map([
 		[mail, { ticks: 4, switchesIn: 3, ms: 120 * MIN }],
