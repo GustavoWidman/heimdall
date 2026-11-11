@@ -2,7 +2,7 @@
  * Keeps heimdall opening offline. Each build precaches itself under its own cache, serves
  * every navigation from the cached app shell, and leaves /api to the network. A new build
  * installs in the background and waits: it takes over at the next launch, once no window
- * runs the old one, so an update never lands mid-tap.
+ * runs the old one, or sooner when the page asks, so an update never lands mid-tap.
  */
 import { version } from '$app/env';
 import { assets, immutable } from '$app/manifest';
@@ -23,6 +23,11 @@ self.addEventListener('activate', (event) => {
 			.keys()
 			.then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
 	);
+});
+
+/** The page asks this once its person chose to reload into the new build. */
+self.addEventListener('message', (event) => {
+	if (event.data === 'take-over') void self.skipWaiting();
 });
 
 self.addEventListener('fetch', (event) => {

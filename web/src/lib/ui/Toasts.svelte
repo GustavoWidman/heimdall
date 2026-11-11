@@ -2,7 +2,8 @@
 	What follows a gesture. After every tick: what it did, an undo, and "earlier" to say it
 	really happened a few minutes ago, with "why the switch?" chips when it switched. A gentle
 	note when the task just left is due soon, and an undo after ending the day. They float
-	above the tab bar, so nothing underneath moves and the rest button stays reachable.
+	above the tab bar, so nothing underneath moves and the rest button stays reachable. The
+	offer of a newer build stacks above them.
 -->
 <script lang="ts">
 	import { untrack } from 'svelte';
@@ -16,6 +17,7 @@
 		type Task
 	} from '#lib/app/app.svelte.ts';
 	import { clock, MINUTE, remaining } from './format';
+	import UpdatePopup from './UpdatePopup.svelte';
 	import { useCtx, type Moment } from './watch.svelte';
 
 	const ASK_MS = 4000;
@@ -226,6 +228,7 @@
 	onfocusin={() => hold(true)}
 	onfocusout={() => hold(false)}
 >
+	<UpdatePopup />
 	{#if note}
 		{#key note.seq}
 			<div
