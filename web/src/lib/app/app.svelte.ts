@@ -140,6 +140,8 @@ export class App {
 	readonly #recomputing = new Map<string, Promise<DayAggregate[]>>();
 	readonly #stop: (() => void)[] = [];
 	#status = $state<SyncStatus>({ kind: 'idle', lastOk: null });
+	#waiting = $state(0);
+	#waitingSeq = 0;
 	#minute = $state(0);
 	readonly #subscribeNow = createSubscriber((update) => this.#timers.every(update, 1000));
 
@@ -212,6 +214,8 @@ export class App {
 		await Promise.all([replica.loadAll('task'), replica.loadAll('settings')]);
 		await Promise.all([app.#ensure(app.#todayKey), app.#ensure(addDays(app.#todayKey, -1))]);
 		app.#stop.push(app.#timers.every(() => app.#minute++, 60_000));
+		app.#stop.push(replica.onChange(() => app.#countWaiting()));
+		app.#countWaiting();
 		app.#sync.start();
 		return app;
 	}
@@ -232,8 +236,25 @@ export class App {
 		return this.#status;
 	}
 
+	/** Changes made on this device that the server has not acknowledged yet. */
+	get waiting(): number {
+		return this.#waiting;
+	}
+
+	/** Recount the outbox. A later count always wins over an earlier one still in flight. */
+	#countWaiting(): void {
+		const seq = ++this.#waitingSeq;
+		void this.#replica.waiting().then(
+			(n) => {
+				if (seq === this.#waitingSeq) this.#waiting = n;
+			},
+			() => {}
+		);
+	}
+
 	#onStatus(status: SyncStatus): void {
 		this.#status = status;
+		this.#countWaiting();
 		const rec = this.#replica.mirror.settings.get('user');
 		if (status.kind === 'idle' && status.lastOk !== null && !rec?.regs.timeZone) {
 			this.do({ k: 'settings', timeZone: this.#deps.deviceZone });

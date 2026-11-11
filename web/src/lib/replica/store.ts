@@ -110,6 +110,11 @@ export class Store {
 		return done(tx.objectStore('outbox').getAll(null, limit));
 	}
 
+	/** How many ops wait in the outbox. */
+	async waiting(): Promise<number> {
+		return done(this.#db.transaction('outbox', 'readonly').objectStore('outbox').count());
+	}
+
 	async orphans(): Promise<Op[]> {
 		return done(this.#db.transaction('orphan', 'readonly').objectStore('orphan').getAll());
 	}
