@@ -1,5 +1,5 @@
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -18,6 +18,8 @@ export function writePasswordHash(file: string): void {
 
 export type Server = {
 	readonly url: string;
+	/** The web build this server answers from. */
+	readonly webDir: string;
 	/** Stops answering, as when the network drops. */
 	stop(): Promise<void>;
 	/** Serves the same data again on the same port. */
@@ -25,9 +27,15 @@ export type Server = {
 	dispose(): Promise<void>;
 };
 
-/** A heimdall server of its own: a fresh data directory on a port the OS picks. */
-export async function startServer(hashFile: string): Promise<Server> {
+/**
+ * A heimdall server of its own: a fresh data directory on a port the OS picks. With
+ * `ownBuild` it answers from a copy of the web build that the test may change, as a deploy
+ * would.
+ */
+export async function startServer(hashFile: string, ownBuild = false): Promise<Server> {
 	const dataDir = mkdtempSync(join(tmpdir(), 'heimdall-e2e-'));
+	const webDir = ownBuild ? join(dataDir, 'web') : WEB_DIR;
+	if (ownBuild) cpSync(WEB_DIR, webDir, { recursive: true });
 	let child: ChildProcess | null = null;
 	let listen = '127.0.0.1:0';
 
@@ -40,7 +48,7 @@ export async function startServer(hashFile: string): Promise<Server> {
 				'--data-dir',
 				dataDir,
 				'--web-dir',
-				WEB_DIR,
+				webDir,
 				'--password-hash-file',
 				hashFile,
 				'--insecure-cookies'
@@ -78,6 +86,7 @@ export async function startServer(hashFile: string): Promise<Server> {
 	await start();
 	return {
 		url: `http://${listen}`,
+		webDir,
 		stop,
 		start,
 		async dispose() {
