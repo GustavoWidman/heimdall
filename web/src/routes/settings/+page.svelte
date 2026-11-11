@@ -206,6 +206,13 @@
 				a moment something new enters your head. bouncing inside a juggle isn’t counted bounce by
 				bounce. it shows up as juggle time instead, which is its own kind of strain.
 			</dd>
+			<dt>quick taps</dt>
+			<dd>
+				tap a task and leave it again within the window set above, and it joins what you held, as a
+				hold would. a glance away and back is a short juggle, not two switches.
+			</dd>
+			<dt>load</dt>
+			<dd>focus time weighed by the tasks held at once: a minute juggling three counts three.</dd>
 		</dl>
 		<table>
 			<caption class="visually-hidden">which moves count as a switch</caption>
