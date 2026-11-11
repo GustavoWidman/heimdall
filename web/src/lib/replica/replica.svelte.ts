@@ -215,6 +215,12 @@ export class Replica {
 		return this.#store.outbox(max);
 	}
 
+	/** How many ops wait for the server, counting every commit made so far. */
+	async waiting(): Promise<number> {
+		await this.#writes;
+		return this.#store.waiting();
+	}
+
 	/** Drop ops from the outbox without sending them; the records keep their values. */
 	async forget(hlcs: readonly Hlc[]): Promise<void> {
 		await this.#store.apply({ ops: [], acked: hlcs });
