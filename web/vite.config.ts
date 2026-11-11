@@ -1,8 +1,10 @@
 import { defineConfig } from 'vitest/config';
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
+import pkg from './package.json' with { type: 'json' };
 
 export default defineConfig({
+	define: { __HEIMDALL_VERSION__: JSON.stringify(pkg.version) },
 	plugins: [
 		sveltekit({
 			compilerOptions: {

@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { syncLine } from '#lib/settings/sync-line.ts';
 	import { applyTheme, storedTheme, THEMES, type Theme } from '#lib/ui/theme.ts';
+	import Version from '#lib/ui/Version.svelte';
 	import { useCtx } from '#lib/ui/watch.svelte.ts';
 
 	const { app } = useCtx();
@@ -220,6 +221,7 @@
 			</tbody>
 		</table>
 	</section>
+	<Version />
 </div>
 
 <style>
