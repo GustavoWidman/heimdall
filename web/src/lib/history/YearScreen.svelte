@@ -1,6 +1,7 @@
 <!--
-	A year as a heatmap of days, one metric at a time. On a phone the year folds into two
-	halves so each day stays big enough to tap. Arrow keys walk the days; enter opens one.
+	A year as a heatmap of days, one metric at a time, with each month's total (or, for
+	check-in answers, its mean) beneath. On a phone the year folds into two halves so each
+	day stays big enough to tap. Arrow keys walk the days; enter opens one.
 -->
 <script lang="ts">
 	import { goto } from '$app/navigation';
@@ -93,20 +94,32 @@
 			if (v > best[1]) best = [d, v];
 		}
 		const days = `${values.size} ${values.size === 1 ? 'day' : 'days'}`;
-		const total =
-			metricId === 'switches' || metricId === 'focus' || metricId === 'juggle'
-				? `${metric.format(sum)} over ${days}`
-				: `answered on ${days}`;
+		const total = metric.additive ? `${metric.format(sum)} over ${days}` : `answered on ${days}`;
 		return `${total}. the most: ${metric.format(best[1])}, ${dayLabel(best[0])}.`;
 	});
 
-	const table = $derived(
-		Array.from({ length: 12 }, (_, i) => {
-			const m = `${year}-${String(i + 1).padStart(2, '0')}`;
-			const vs = [...values].filter(([d]) => d.startsWith(m)).map(([, v]) => v);
-			return { m: monthShort(m), n: vs.length, sum: vs.reduce((a, b) => a + b, 0) };
-		})
-	);
+	const monthly = $derived.by(() => {
+		const rows = Array.from({ length: 12 }, (_, i) => {
+			const key = `${year}-${String(i + 1).padStart(2, '0')}`;
+			const vs = [...values].filter(([d]) => d.startsWith(key)).map(([, v]) => v);
+			const sum = vs.reduce((a, b) => a + b, 0);
+			const v = vs.length === 0 ? null : metric.additive ? sum : sum / vs.length;
+			return { key, m: monthShort(key), v, ahead: key > today.slice(0, 7) };
+		});
+		// Months scale to the biggest month; answers keep their own scale.
+		const top = metric.additive ? Math.max(0, ...rows.map((r) => r.v ?? 0)) : metric.hi([]);
+		const lo = metric.additive ? 0 : metric.lo;
+		return rows.map((r) => ({
+			...r,
+			level: level(r.v, lo, top),
+			height: r.v === null ? 0 : Math.max(0.04, (r.v - lo) / Math.max(1e-9, top - lo))
+		}));
+	});
+
+	function said(v: number | null, ahead: boolean): string {
+		if (v === null) return ahead ? 'still ahead' : 'nothing recorded';
+		return metric.format(metric.additive ? v : Math.round(v));
+	}
 
 	function open(d: DayKey) {
 		if (d <= today) void goto(resolve('/history/[day]', { day: d }));
@@ -218,15 +231,25 @@
 	</div>
 	{#if pointed && summary}<p class="sum">{summary}</p>{/if}
 
-	<table class="visually-hidden">
-		<caption>{metric.label} in {year}, by month</caption>
-		<thead><tr><th>month</th><th>days with a value</th><th>total</th></tr></thead>
-		<tbody>
-			{#each table as r (r.m)}
-				<tr><td>{r.m}</td><td>{r.n}</td><td>{r.n ? metric.format(r.sum) : ''}</td></tr>
+	<section class="months" aria-labelledby="by-month">
+		<h2 id="by-month" class="label">
+			{metric.additive ? metric.label : `${metric.label}, on average`} by month
+		</h2>
+		<ol>
+			{#each monthly as r (r.key)}
+				<li>
+					<a href={resolve('/month/[key]', { key: r.key })} class:ahead={r.ahead}>
+						<span class="visually-hidden">{r.m}: {said(r.v, r.ahead)}</span>
+						<span class="v mono" aria-hidden="true">{r.v === null ? '' : metric.short(r.v)}</span>
+						<span class="bar" aria-hidden="true">
+							<i class="l{r.level ?? 'none'}" style:height="{r.height * 100}%"></i>
+						</span>
+						<span class="m mono" aria-hidden="true">{r.m}</span>
+					</a>
+				</li>
 			{/each}
-		</tbody>
-	</table>
+		</ol>
+	</section>
 </div>
 
 <style>
@@ -278,27 +301,32 @@
 		cursor: default;
 	}
 	rect.l0,
-	.legend .l0 {
+	.legend .l0,
+	.bar .l0 {
 		fill: color-mix(in oklch, var(--ink) 9%, var(--bg));
 		background: color-mix(in oklch, var(--ink) 9%, var(--bg));
 	}
 	rect.l1,
-	.legend .l1 {
+	.legend .l1,
+	.bar .l1 {
 		fill: color-mix(in oklch, var(--ink) 22%, var(--bg));
 		background: color-mix(in oklch, var(--ink) 22%, var(--bg));
 	}
 	rect.l2,
-	.legend .l2 {
+	.legend .l2,
+	.bar .l2 {
 		fill: color-mix(in oklch, var(--ink) 38%, var(--bg));
 		background: color-mix(in oklch, var(--ink) 38%, var(--bg));
 	}
 	rect.l3,
-	.legend .l3 {
+	.legend .l3,
+	.bar .l3 {
 		fill: color-mix(in oklch, var(--ink) 58%, var(--bg));
 		background: color-mix(in oklch, var(--ink) 58%, var(--bg));
 	}
 	rect.l4,
-	.legend .l4 {
+	.legend .l4,
+	.bar .l4 {
 		fill: color-mix(in oklch, var(--ink) 82%, var(--bg));
 		background: color-mix(in oklch, var(--ink) 82%, var(--bg));
 	}
@@ -353,6 +381,72 @@
 		font-size: 14px;
 		color: var(--ink-3);
 	}
+	.months {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		margin-top: 10px;
+		padding-top: 18px;
+		border-top: 1px solid var(--rule-2);
+	}
+	.months h2 {
+		font-weight: 400;
+	}
+	.months ol {
+		display: grid;
+		grid-template-columns: repeat(6, minmax(0, 1fr));
+		gap: 18px 6px;
+		list-style: none;
+	}
+	.months a {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 6px;
+		padding: 4px 2px;
+		border-radius: 8px;
+		text-decoration: none;
+		transition: background-color 0.2s;
+	}
+	.months a:active {
+		background: var(--panel-2);
+	}
+	.months a.ahead .bar {
+		border-bottom-style: dashed;
+	}
+	.v {
+		min-height: 15px;
+		font-size: 11px;
+		text-align: center;
+		color: var(--ink-2);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.bar {
+		position: relative;
+		height: 56px;
+		border-bottom: 1px solid var(--rule);
+	}
+	.bar i {
+		position: absolute;
+		left: 50%;
+		bottom: 0;
+		width: min(100%, 28px);
+		border-radius: 4px 4px 0 0;
+		translate: -50% 0;
+		transition: height 0.3s var(--spring);
+	}
+	.m {
+		font-size: 11px;
+		text-align: center;
+		color: var(--ink-3);
+	}
+	@media (hover: hover) {
+		.months a:hover {
+			background: var(--panel-2);
+		}
+	}
 	@media (min-width: 1000px) {
 		.year {
 			padding-top: 22px;
@@ -361,6 +455,20 @@
 		.metrics {
 			margin: 0;
 			padding: 0;
+		}
+		.months ol {
+			grid-template-columns: repeat(12, minmax(0, 1fr));
+			gap: 10px;
+		}
+		.bar {
+			height: 120px;
+		}
+		.bar i {
+			width: min(100%, 44px);
+		}
+		.v,
+		.m {
+			font-size: 12px;
 		}
 	}
 </style>
