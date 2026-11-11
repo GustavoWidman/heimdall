@@ -29,13 +29,13 @@
 </script>
 
 {#if chip}
-	<a class="chip" class:mobile href={chip.href} data-kind={app.sync.kind}>
+	<a class="sync" class:mobile href={chip.href} data-kind={app.sync.kind}>
 		<span class="lamp" aria-hidden="true"></span>{chip.text}
 	</a>
 {/if}
 
 <style>
-	.chip {
+	.sync {
 		display: inline-flex;
 		align-items: center;
 		gap: 6px;
@@ -53,20 +53,17 @@
 		border-radius: 50%;
 		background: var(--ink-4);
 	}
-	.chip[data-kind='offline'] .lamp {
+	.sync[data-kind='offline'] .lamp {
 		background: transparent;
 		box-shadow: inset 0 0 0 1.5px var(--ink-3);
 	}
-	.chip.mobile {
-		position: absolute;
-		top: calc(var(--safe-top) + 2px);
-		left: 50%;
-		transform: translateX(-50%);
-		padding: 4px 8px;
-		z-index: 2;
+	.sync.mobile {
+		display: flex;
+		width: fit-content;
+		margin: 0 0 6px;
 	}
 	@media (min-width: 1000px) {
-		.chip.mobile {
+		.sync.mobile {
 			display: none;
 		}
 	}

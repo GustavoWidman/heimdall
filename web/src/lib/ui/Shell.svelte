@@ -80,9 +80,10 @@
 		<SyncChip {app} />
 	</header>
 
-	<SyncChip {app} mobile />
-
-	<main>{@render children()}</main>
+	<main>
+		<SyncChip {app} mobile />
+		{@render children()}
+	</main>
 
 	<Toasts />
 
@@ -211,7 +212,7 @@
 			padding: 0 4px;
 			color: var(--ink-3);
 		}
-		.bar :global(.chip) {
+		.bar :global(.sync) {
 			margin-left: auto;
 		}
 	}
