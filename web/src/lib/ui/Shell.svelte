@@ -12,6 +12,7 @@
 	import Icon from './Icon.svelte';
 	import { DESTINATIONS, MORE_ICON, type Destination } from './nav';
 	import RestButton from './RestButton.svelte';
+	import SyncChip from './SyncChip.svelte';
 	import Toasts from './Toasts.svelte';
 	import { provideCtx, Watch } from './watch.svelte';
 
@@ -76,12 +77,10 @@
 				</a>
 			{/each}
 		</nav>
-		{#if needsLogin}<a class="signin" href={resolve('/login')}>sign in to sync</a>{/if}
+		<SyncChip {app} />
 	</header>
 
-	{#if needsLogin}
-		<a class="signin mobile" href={resolve('/login')}>sign in to sync</a>
-	{/if}
+	<SyncChip {app} mobile />
 
 	<main>{@render children()}</main>
 
@@ -116,22 +115,6 @@
 	}
 	.bar {
 		display: none;
-	}
-	.signin {
-		font-family: var(--mono);
-		font-size: 11.5px;
-		color: var(--ink-2);
-		text-decoration: underline;
-		text-decoration-color: var(--rule);
-		text-underline-offset: 3px;
-	}
-	.signin.mobile {
-		position: absolute;
-		top: calc(var(--safe-top) + 2px);
-		left: 50%;
-		transform: translateX(-50%);
-		padding: 4px 8px;
-		z-index: 2;
 	}
 	.tabbar {
 		position: fixed;
@@ -182,7 +165,6 @@
 			max-width: 1440px;
 			padding: 0 var(--gutter) 32px;
 		}
-		.signin.mobile,
 		.tabbar {
 			display: none;
 		}
@@ -229,7 +211,7 @@
 			padding: 0 4px;
 			color: var(--ink-3);
 		}
-		.bar .signin {
+		.bar :global(.chip) {
 			margin-left: auto;
 		}
 	}
