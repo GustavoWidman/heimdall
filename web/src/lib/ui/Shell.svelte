@@ -1,6 +1,7 @@
 <!--
 	The frame around every screen: the desktop bar, the mobile tab bar with the rest button
-	under the thumb, the after-switch toasts, global shortcuts, and the sign-in routing.
+	under the thumb, the after-switch toasts, the sync indicator, global shortcuts, the
+	check for a newer build, and the sign-in routing.
 -->
 <script lang="ts">
 	import type { Snippet } from 'svelte';
@@ -8,6 +9,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import type { App } from '#lib/app/app.svelte.ts';
+	import { update } from '#lib/app/update.svelte.ts';
 	import Brand from './Brand.svelte';
 	import Icon from './Icon.svelte';
 	import { DESTINATIONS, MORE_ICON, type Destination } from './nav';
@@ -23,6 +25,8 @@
 	const watch = new Watch(app);
 	// svelte-ignore state_referenced_locally
 	provideCtx({ app, watch });
+
+	void update.start();
 
 	const path = $derived(page.url.pathname);
 	const bare = $derived(path === resolve('/login'));
