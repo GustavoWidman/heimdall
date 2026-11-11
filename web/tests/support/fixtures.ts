@@ -18,6 +18,8 @@ type Options = {
 	signedIn: boolean;
 	/** Network failures a test causes on purpose show up as console errors; let them. */
 	networkErrorsOk: boolean;
+	/** Serve a copy of the web build the test may change, as a deploy would. */
+	ownBuild: boolean;
 };
 
 type Fixtures = {
@@ -35,6 +37,7 @@ export const test = base.extend<Options & Fixtures, { hashFile: string }>({
 	startAt: [at(TODAY, '08:05'), { option: true }],
 	signedIn: [true, { option: true }],
 	networkErrorsOk: [false, { option: true }],
+	ownBuild: [false, { option: true }],
 
 	hashFile: [
 		// eslint-disable-next-line no-empty-pattern
@@ -42,8 +45,8 @@ export const test = base.extend<Options & Fixtures, { hashFile: string }>({
 		{ scope: 'worker' }
 	],
 
-	server: async ({ hashFile }, use) => {
-		const server = await startServer(hashFile);
+	server: async ({ hashFile, ownBuild }, use) => {
+		const server = await startServer(hashFile, ownBuild);
 		await use(server);
 		await server.dispose();
 	},
