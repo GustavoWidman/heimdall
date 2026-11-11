@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { summarize } from '#lib/checkin/view.ts';
 	import Icon from '#lib/ui/Icon.svelte';
+	import Version from '#lib/ui/Version.svelte';
 	import { DESTINATIONS, type Destination } from '#lib/ui/nav.ts';
 	import { useCtx } from '#lib/ui/watch.svelte.ts';
 
@@ -51,6 +52,7 @@
 		{/each}
 	</ul>
 {/each}
+<Version />
 
 <style>
 	h1 {

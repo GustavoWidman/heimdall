@@ -116,3 +116,11 @@ test.describe('a device that never signed in', () => {
 		).toBeVisible();
 	});
 });
+
+test('settings and the more screen name the release this device runs', async ({ page }) => {
+	const { version } = JSON.parse(readFileSync('package.json', 'utf8')) as { version: string };
+	for (const path of ['/settings', '/more']) {
+		await open(page, path);
+		await expect(page.getByText(`heimdall ${version}`, { exact: true })).toBeVisible();
+	}
+});
