@@ -59,7 +59,7 @@ the same toast follows every tick with an **undo** for the wrong tap, and **earl
 - **week, month, year.** seven ribbons stacked on one hour scale, a calendar shaded by switching with headache, crying, and laughing marked, and a year as a heatmap of any metric.
 - **insights.** switching against your own usual range, when and why you switch, focus stretches, juggling, deadline pressure, strain next to switching, and a short list of what stands out. patterns, not causes.
 - **check-in.** about 30 seconds, every question optional, built from the research below.
-- **offline first.** install it to your home screen. taps land in local storage within a frame, with or without a network, and sync to your other devices when they can.
+- **offline first.** install it to your home screen. taps land in local storage within a frame, with or without a network, and sync to your other devices when they can. while the server is out of reach, the header says so and counts what is waiting.
 - **keyboard.** `1` to `9` switch, holding one down (or `shift` plus a number) juggles, `r` rests, and every screen has a key.
 
 <img src="assets/screenshots/insights.png" width="820" alt="insights over 30 days: switches per day against your usual range, what stands out, strain next to switching, and why you switched">
