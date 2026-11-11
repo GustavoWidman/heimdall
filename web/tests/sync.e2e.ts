@@ -54,16 +54,20 @@ test.describe('without a network', () => {
 		await open(other);
 		await expect(row(other, 'on the train')).toBeVisible();
 
+		const chip = page.getByRole('link', { name: /^offline/ }).first();
 		await page.context().setOffline(true);
 		await tap(row(page, 'on the train'), touch);
 		await expect(row(page, 'on the train')).toHaveAttribute('aria-pressed', 'true');
-		await page.waitForTimeout(1500);
+		await expect(chip, 'the header says the tap is waiting').toHaveText(/offline · 1 waiting/, {
+			timeout: 6000
+		});
 		await expect(row(other, 'on the train')).toHaveAttribute('aria-pressed', 'false');
 
 		await page.context().setOffline(false);
 		await expect(row(other, 'on the train')).toHaveAttribute('aria-pressed', 'true', {
 			timeout: 6000
 		});
+		await expect(chip, 'nothing to say once it is through').toBeHidden({ timeout: 6000 });
 	});
 
 	test('the app opens offline from the service worker', async ({ page, touch }) => {
