@@ -21,6 +21,13 @@ export type Metric = {
 	readonly lo: number;
 	readonly hi: (values: readonly number[]) => number;
 	readonly format: (v: number) => string;
+	/** A value short enough for a month's column. */
+	readonly short: (v: number) => string;
+	/**
+	 * Whether days add up: a month of a count or a duration is its sum; a month of answers
+	 * is their mean.
+	 */
+	readonly additive: boolean;
 };
 
 const most = (floor: number) => (values: readonly number[]) => Math.max(floor, ...values);
@@ -39,42 +46,54 @@ export const METRICS: Readonly<Record<MetricId, Metric>> = {
 		value: (s) => (tracked(s.agg) ? s.agg.switches : null),
 		lo: 0,
 		hi: most(12),
-		format: (v) => `${v} ${v === 1 ? 'switch' : 'switches'}`
+		format: (v) => `${v} ${v === 1 ? 'switch' : 'switches'}`,
+		short: String,
+		additive: true
 	},
 	focus: {
 		label: 'focus',
 		value: (s) => (tracked(s.agg) ? s.agg.focusMs : null),
 		lo: 0,
 		hi: most(4 * HOUR),
-		format: (v) => `${spent(v)} focus`
+		format: (v) => `${spent(v)} focus`,
+		short: spent,
+		additive: true
 	},
 	juggle: {
 		label: 'juggle',
 		value: (s) => (tracked(s.agg) ? s.agg.juggleMs : null),
 		lo: 0,
 		hi: most(HOUR),
-		format: (v) => `${spent(v)} juggling`
+		format: (v) => `${spent(v)} juggling`,
+		short: spent,
+		additive: true
 	},
 	load: {
 		label: 'load',
 		value: (s) => (tracked(s.agg) ? s.agg.loadMs : null),
 		lo: 0,
 		hi: most(6 * HOUR),
-		format: (v) => `${spent(v)} load`
+		format: (v) => `${spent(v)} load`,
+		short: spent,
+		additive: true
 	},
 	strain: {
 		label: 'strain',
 		value: answer('strain'),
 		lo: 1,
 		hi: () => 5,
-		format: (v) => `strain ${answerLabel('strain', v)}`
+		format: (v) => `strain ${answerLabel('strain', v)}`,
+		short: (v) => answerLabel('strain', Math.round(v)),
+		additive: false
 	},
 	headache: {
 		label: 'headache',
 		value: answer('headache'),
 		lo: 0,
 		hi: () => 3,
-		format: (v) => `headache ${answerLabel('headache', v)}`
+		format: (v) => `headache ${answerLabel('headache', v)}`,
+		short: (v) => answerLabel('headache', Math.round(v)),
+		additive: false
 	}
 };
 

@@ -84,6 +84,14 @@ test('week, month, and year step back and open their days', async ({ page, reque
 		.or(page.getByRole('link', { name: 'next year' }))
 		.click();
 	await expect(heading(page)).toHaveText('2026');
+	const months = page.getByRole('region', { name: 'switches by month' });
+	await expect(months.getByRole('link', { name: 'dec: still ahead' })).toBeVisible();
+	await page.getByRole('button', { name: 'load', exact: true }).click();
+	await expect(page.getByText(/^[\dh]+ load over \d+ days\./)).toBeVisible();
+	await page.getByRole('button', { name: 'switches', exact: true }).click();
+	await months.getByRole('link', { name: /^oct: \d+ switches$/ }).click();
+	await expect(page).toHaveURL(/\/month\/2026-10$/);
+	await expect(heading(page)).toHaveText('october 2026');
 });
 
 test('a letter key opens each screen on desktop', async ({ page, touch }) => {
