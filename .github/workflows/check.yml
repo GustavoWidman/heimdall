@@ -37,13 +37,26 @@ jobs:
           fi
           python3 .github/scripts/version.py commits --base "$BASE_SHA" --head "$HEAD_SHA"
 
+  # Both systems heimdall serves from. The NixOS module test boots a VM on x86_64-linux;
+  # the module is the same on aarch64-linux, which builds every other check.
   nix:
+    name: nix ${{ matrix.system }}
     if: github.event_name == 'pull_request' || inputs.nix
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - system: x86_64-linux
+            runner: ubuntu-24.04
+            vm: true
+          - system: aarch64-linux
+            runner: ubuntu-24.04-arm
+            vm: false
     steps:
       - uses: actions/checkout@v5
-      # The NixOS module test boots a VM.
       - name: Enable KVM
+        if: matrix.vm
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
@@ -68,18 +81,30 @@ jobs:
           save: false
       - if: steps.deps-cache.outputs.hit-primary-key == 'true'
         run: .github/scripts/deps-cache import "${{ steps.deps.outputs.path }}"
-      - run: nix flake check --print-build-logs
+      - if: matrix.vm
+        run: nix flake check --print-build-logs
+      - name: Build every check but the VM test
+        if: ${{ !matrix.vm }}
+        env:
+          SYSTEM: ${{ matrix.system }}
+        run: |
+          names=$(nix eval --json ".#checks.$SYSTEM" \
+            --apply 'checks: builtins.attrNames (removeAttrs checks [ "heimdall-module" ])' |
+            jq -r --arg system "$SYSTEM" '.[] | ".#checks.\($system).\(.)"')
+          mapfile -t checks <<< "$names"
+          nix build --print-build-logs "${checks[@]}"
       # Records the tree that passed, so the release run of the same tree on main can reuse
       # this check (see .github/scripts/checked-tree). On a pull request this is the merge
-      # of the head into the base.
+      # of the head into the base. The run must succeed as a whole, both systems included,
+      # before a release reuses it.
       - name: Record the checked tree
         id: tree
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && matrix.vm
         run: |
           tree=$(git rev-parse 'HEAD^{tree}')
           printf '%s\n' "$tree" > "$RUNNER_TEMP/nix-check-tree"
           printf 'tree=%s\n' "$tree" >> "$GITHUB_OUTPUT"
-      - if: github.event_name == 'pull_request'
+      - if: github.event_name == 'pull_request' && matrix.vm
         uses: actions/upload-artifact@v7
         with:
           name: nix-check-${{ steps.tree.outputs.tree }}
