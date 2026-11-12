@@ -114,3 +114,31 @@ test.describe('the day start hour', () => {
 		await expect(ledger).toContainText('02:30');
 	});
 });
+
+test.describe('a day left running overnight', () => {
+	test.use({ startAt: at(addDays(TODAY, 1), '08:30') });
+
+	test('ending it late turns the night back into a gap', async ({ page, request }) => {
+		await new Seed()
+			.task('seed_a', 'evening work', 200)
+			.mark(at(TODAY, '21:00'), { k: 'tap', task: 'seed_a' })
+			.mark(at(TODAY, '23:30'), { k: 'rest' })
+			.push(request);
+		await open(page);
+		const sheet = page.getByRole('dialog');
+		if (await sheet.isVisible()) await sheet.getByRole('button', { name: 'done' }).click();
+		await expect(sheet).toBeHidden();
+		await expect(page.getByRole('main'), 'the night counts as rest').toContainText('rest 4h30');
+
+		await page.getByRole('button', { name: 'forgot to tick?' }).click();
+		await sheet.getByText('ended the day', { exact: true }).click();
+		await expect(sheet.getByText('alongside what I held')).toBeHidden();
+		await sheet.getByLabel('at', { exact: true }).fill('23:45');
+		await sheet.getByRole('button', { name: 'log it' }).click();
+		await expect(sheet).toBeHidden();
+		await expect(page.getByRole('main')).toContainText('rest 0m');
+
+		await open(page, `/history/${TODAY}`);
+		await expect(page.getByRole('region', { name: 'switch ledger' }).last()).toContainText('23:45');
+	});
+});

@@ -1,4 +1,8 @@
-<!-- A switch that happened without a tick: log it at the time it really happened. -->
+<!--
+	A switch that happened without a tick, or a day left running: log it at the time it
+	really happened. An end of day logged late turns the night back into the gap between
+	days instead of rest.
+-->
 <script lang="ts">
 	import type { Instant, TaskId } from '#lib/app/app.svelte.ts';
 	import { clock, MINUTE, minuteOfDay } from '#lib/ui/format.ts';
@@ -11,7 +15,7 @@
 	const zone = $derived(app.settings.timeZone);
 	const rows = $derived(app.today.board);
 
-	let what: TaskId | 'rest' | null = $state(null);
+	let what: TaskId | 'rest' | 'off' | null = $state(null);
 	let alongside = $state(false);
 	// svelte-ignore state_referenced_locally
 	let time = $state(clock(app.now - 15 * MINUTE, zone));
@@ -29,8 +33,8 @@
 		if (!what || !time) return;
 		const at = instantOf(time);
 		const d =
-			what === 'rest'
-				? app.do({ k: 'rest', at })
+			what === 'rest' || what === 'off'
+				? app.do({ k: what as 'rest' | 'off', at })
 				: app.do({ k: alongside ? 'hold' : 'tap', task: what, at });
 		if (d.ok) onclose();
 	}
@@ -55,6 +59,11 @@
 				<Iris size={20} open={what === 'rest'} />
 				<span>rest</span>
 			</label>
+			<label class="pick">
+				<input type="radio" name="what" value="off" bind:group={what} />
+				<Iris size={20} open={false} />
+				<span>ended the day</span>
+			</label>
 		</div>
 	</div>
 
@@ -63,7 +72,7 @@
 		<input id="forgot-time" class="field mono" type="time" bind:value={time} />
 	</div>
 
-	{#if what !== 'rest'}
+	{#if what !== 'rest' && what !== 'off'}
 		<label class="fld toggle">
 			<span class="nm">alongside what I held</span>
 			<input class="toggle-switch" type="checkbox" switch bind:checked={alongside} />
