@@ -1,8 +1,9 @@
 name: release
 
-# Every push to main is checked, built for each system, and pushed to the cache, where
-# heimdall-<system> pins the newest build. A version in Cargo.toml that has no tag yet is
-# then tagged and released at that commit.
+# A push to main that brings a version with no release yet is checked, built for each
+# system, and pushed to the cache, where heimdall-<system> pins the newest build, then
+# tagged and released at that commit. A push that releases nothing, such as a pull
+# request labeled no-release, builds nothing.
 on:
   push:
     branches: [main]
@@ -15,11 +16,38 @@ permissions:
   contents: read
 
 jobs:
+  # A failed API request fails the run rather than passing for a missing release, and a
+  # draft counts as a release, as in release-tag.sh.
+  version:
+    name: Find a version to release
+    runs-on: ubuntu-24.04
+    outputs:
+      release: ${{ steps.find.outputs.release }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+      - id: find
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v$(python3 .github/scripts/version.py current)"
+          releases=$(gh api --paginate 'repos/{owner}/{repo}/releases?per_page=100')
+          if jq -es --arg tag "$tag" 'any(.[][]; .tag_name == $tag)' <<< "$releases" > /dev/null; then
+            echo "$tag is already released; nothing to build"
+            printf 'release=false\n' >> "$GITHUB_OUTPUT"
+          else
+            echo "Releasing $tag"
+            printf 'release=true\n' >> "$GITHUB_OUTPUT"
+          fi
+
   # A pull request merged by rebase lands with the tree its check already ran on, so the
-  # release reuses that `nix flake check` (VM test included) instead of repeating it. Any
-  # other push, or a failed lookup, runs the full check.
+  # release reuses that `nix flake check` (VM test and both systems included) instead of
+  # repeating it. Any other push, or a failed lookup, runs the full check.
   checked:
     name: Find a passing check of this tree
+    needs: version
+    if: needs.version.outputs.release == 'true'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
