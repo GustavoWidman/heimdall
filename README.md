@@ -128,7 +128,7 @@ with `virtualHost` set, caddy serves the web app straight from its files and pro
 
 the unit runs as a dynamic user with a hardened sandbox, and the module has a vm test (`checks.x86_64-linux.heimdall-module`).
 
-every push to `main` runs `nix flake check`, then builds heimdall for x86_64-linux, aarch64-linux and aarch64-darwin and pushes it to `https://cache.r3dlust.com` (key `cache.r3dlust.com-1:Wdkf9mes2ued0P7C7CL3Jax1b4KPuJwQpM3h4G/Z+yI=`), pinned as `heimdall-<system>`. keep the input's own `nixpkgs` (no `follows`) and a host gets that exact build from the cache. the version lives in `Cargo.toml`, with `Cargo.lock` and `web/package.json` agreeing; a version with no tag yet is tagged `v<version>` and released once its build is cached, and a pull request must raise it unless labeled `no-release`.
+every pull request runs `nix flake check` on x86_64-linux, the vm test included, and every other check on aarch64-linux, which heimdall also serves from. every push to `main` runs `nix flake check`, then builds heimdall for x86_64-linux, aarch64-linux and aarch64-darwin and pushes it to `https://cache.r3dlust.com` (key `cache.r3dlust.com-1:Wdkf9mes2ued0P7C7CL3Jax1b4KPuJwQpM3h4G/Z+yI=`), pinned as `heimdall-<system>`. keep the input's own `nixpkgs` (no `follows`) and a host gets that exact build from the cache. the version lives in `Cargo.toml`, with `Cargo.lock` and `web/package.json` agreeing; a version with no tag yet is tagged `v<version>` and released once its build is cached, and a pull request must raise it unless labeled `no-release`.
 
 ## how it works
 
