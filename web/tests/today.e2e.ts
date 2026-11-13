@@ -327,3 +327,40 @@ test('a quick glance away and back reads as a juggle, unless the window is off',
 		'2'
 	);
 });
+
+test('nothing on the board animates while heimdall sits behind another window', async ({
+	page,
+	touch
+}) => {
+	const running = () =>
+		page.evaluate(() =>
+			document
+				.getAnimations()
+				.filter((a) => a.playState === 'running')
+				.map((a) =>
+					a instanceof CSSAnimation
+						? a.animationName.replace(/^svelte-\w+-/, '')
+						: a instanceof CSSTransition
+							? a.transitionProperty
+							: 'script'
+				)
+		);
+	const focusTo = (inFront: boolean) =>
+		page.evaluate((inFront) => {
+			if (inFront) Reflect.deleteProperty(document, 'hasFocus');
+			else Object.defineProperty(document, 'hasFocus', { configurable: true, value: () => false });
+			dispatchEvent(new FocusEvent(inFront ? 'focus' : 'blur'));
+		}, inFront);
+
+	await planDay(page, ['deep work', 'chat']);
+	await tap(row(page, 'deep work'), touch);
+	await hold(page, row(page, 'chat'));
+	await expect(focus(page)).toContainText('juggling · 2');
+	await expect.poll(running, 'the iris spins on a juggle').toContain('spin');
+
+	await focusTo(false);
+	await expect.poll(running).toEqual([]);
+
+	await focusTo(true);
+	await expect.poll(running, 'back in front, it spins again').toContain('spin');
+});
