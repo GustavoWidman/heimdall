@@ -270,12 +270,10 @@
 		position: absolute;
 		inset: 0;
 		overflow: hidden;
-		transition: transform 1s linear;
 	}
 	.bar.fill {
 		inset: 0;
 		border-right: 0;
-		transition: transform 1s linear;
 	}
 	.bar.fill.rest {
 		inset: 10px 0;
@@ -302,9 +300,6 @@
 		position: absolute;
 		inset: -6px 0 -4px;
 		pointer-events: none;
-	}
-	.now {
-		transition: transform 1s linear;
 	}
 	.now::before {
 		content: '';
