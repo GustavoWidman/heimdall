@@ -1,7 +1,8 @@
 <!--
 	The frame around every screen: the desktop bar, the mobile tab bar with the rest button
 	under the thumb, the after-switch toasts, the sync indicator, global shortcuts, the
-	check for a newer build, and the sign-in routing.
+	check for a newer build, the pause on looping animations while away, and the sign-in
+	routing.
 -->
 <script lang="ts">
 	import type { Snippet } from 'svelte';
@@ -27,6 +28,11 @@
 	provideCtx({ app, watch });
 
 	void update.start();
+
+	function markAway() {
+		document.documentElement.toggleAttribute('data-away', !document.hasFocus());
+	}
+	$effect(markAway);
 
 	const path = $derived(page.url.pathname);
 	const bare = $derived(path === resolve('/login'));
@@ -67,7 +73,8 @@
 	}
 </script>
 
-<svelte:window {onkeydown} />
+<svelte:window {onkeydown} onfocus={markAway} onblur={markAway} />
+<svelte:document onvisibilitychange={markAway} />
 
 {#if bare}
 	{@render children()}

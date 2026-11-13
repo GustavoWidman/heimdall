@@ -330,6 +330,12 @@ kbd {
 	}
 }
 
+:root[data-away] *,
+:root[data-away] *::before,
+:root[data-away] *::after {
+	animation-play-state: paused !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
 	*,
 	*::before,
