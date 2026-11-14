@@ -35,7 +35,7 @@
 	const values = $derived(
 		new Map(
 			(range.rows ?? []).flatMap((r) => {
-				const v = metric.value(r);
+				const v = metric.value(r, app.areas);
 				return v === null ? [] : [[r.agg.day as string, v] as const];
 			})
 		)

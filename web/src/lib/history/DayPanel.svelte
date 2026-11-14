@@ -3,7 +3,7 @@
 	and the full switch ledger.
 -->
 <script lang="ts">
-	import type { DayKey, Instant } from '#lib/app/app.svelte.ts';
+	import { hardOf, splitSwitches, type DayKey, type Instant } from '#lib/app/app.svelte.ts';
 	import { dayLabel, spent } from '#lib/ui/format.ts';
 	import Ribbon from '#lib/ui/Ribbon.svelte';
 	import Tally from '#lib/ui/Tally.svelte';
@@ -24,6 +24,7 @@
 			? aggregateDay(page.view, app.settings, now === null ? undefined : (now as Instant))
 			: null
 	);
+	const hard = $derived(agg ? hardOf(splitSwitches(agg.switchLog, app.areas)) : null);
 	const tasks = $derived(
 		agg
 			? [...agg.tasks]
@@ -50,6 +51,12 @@
 				<dt>switches</dt>
 				<dd class="mono">{agg.switches}</dd>
 			</div>
+			{#if hard !== null}
+				<div>
+					<dt>hard</dt>
+					<dd class="mono">{hard}</dd>
+				</div>
+			{/if}
 			<div>
 				<dt>focus</dt>
 				<dd class="mono">{spent(agg.focusMs)}</dd>
@@ -127,7 +134,8 @@
 	}
 	.totals {
 		display: grid;
-		grid-template-columns: repeat(5, minmax(0, 1fr));
+		grid-auto-columns: minmax(0, 1fr);
+		grid-auto-flow: column;
 		gap: 8px;
 	}
 	.totals div {
@@ -142,6 +150,9 @@
 	@media (max-width: 420px) {
 		.totals dd {
 			font-size: 17px;
+		}
+		.totals:has(> div:nth-child(6)) dd {
+			font-size: 15px;
 		}
 	}
 	.totals dt {

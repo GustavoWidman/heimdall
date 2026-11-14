@@ -5,10 +5,10 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import type { DayKey } from '#lib/app/app.svelte.ts';
+	import { hardOf, splitSwitches, type DayKey } from '#lib/app/app.svelte.ts';
 	import { spent } from '#lib/ui/format.ts';
 	import { useCtx } from '#lib/ui/watch.svelte.ts';
-	import { rollup } from '../domain/stats';
+	import { rollup, type DayAggregate } from '../domain/stats';
 	import { contrast } from './compare';
 	import PeriodHead from './PeriodHead.svelte';
 	import {
@@ -62,15 +62,28 @@
 		const prev = rows.filter((r) => r.agg.day < week.from && r.agg.day <= cutoff).map((r) => r.agg);
 		const a = rollup(cur);
 		const b = rollup(prev);
-		return { a, b, lines: contrast(a, b, live) };
+		return { a, b, cur, prev, lines: contrast(a, b, live) };
 	});
-	const rowsOf = (t: NonNullable<typeof totals>) => [
-		{ k: 'switches', a: String(t.a.switches), b: String(t.b.switches) },
-		{ k: 'focus', a: spent(t.a.focusMs), b: spent(t.b.focusMs) },
-		{ k: 'juggle', a: spent(t.a.juggleMs), b: spent(t.b.juggleMs) },
-		{ k: 'load', a: spent(t.a.loadMs), b: spent(t.b.loadMs) },
-		{ k: 'rest', a: spent(t.a.restMs), b: spent(t.b.restMs) }
-	];
+	const hardIn = (aggs: readonly DayAggregate[]) =>
+		hardOf(
+			splitSwitches(
+				aggs.flatMap((a) => a.switchLog),
+				app.areas
+			)
+		);
+	const rowsOf = (t: NonNullable<typeof totals>) => {
+		const hard = [hardIn(t.cur), hardIn(t.prev)];
+		return [
+			{ k: 'switches', a: String(t.a.switches), b: String(t.b.switches) },
+			...(hard.some((v) => v !== null)
+				? [{ k: 'hard switches', a: String(hard[0] ?? '·'), b: String(hard[1] ?? '·') }]
+				: []),
+			{ k: 'focus', a: spent(t.a.focusMs), b: spent(t.b.focusMs) },
+			{ k: 'juggle', a: spent(t.a.juggleMs), b: spent(t.b.juggleMs) },
+			{ k: 'load', a: spent(t.a.loadMs), b: spent(t.b.loadMs) },
+			{ k: 'rest', a: spent(t.a.restMs), b: spent(t.b.restMs) }
+		];
+	};
 	const empty = $derived(
 		totals !== null && totals.a.ticks === 0 && totals.a.focusMs === 0 && totals.a.restMs === 0
 	);

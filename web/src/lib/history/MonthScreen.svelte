@@ -5,7 +5,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import type { DaySummary } from '#lib/app/app.svelte.ts';
+	import { hardOf, splitSwitches, type DaySummary } from '#lib/app/app.svelte.ts';
 	import { dayLabel, spent } from '#lib/ui/format.ts';
 	import { useCtx } from '#lib/ui/watch.svelte.ts';
 	import { rollup } from '../domain/stats';
@@ -66,6 +66,14 @@
 		})
 	);
 	const totals = $derived(range.rows ? rollup(range.rows.map((r) => r.agg)) : null);
+	const hard = $derived(
+		hardOf(
+			splitSwitches(
+				(range.rows ?? []).flatMap((r) => r.agg.switchLog),
+				app.areas
+			)
+		)
+	);
 	const watchedDays = $derived((range.rows ?? []).filter((r) => tracked(r.agg)).length);
 </script>
 
@@ -133,7 +141,9 @@
 					nothing watched this month yet. days shade in as you tick.
 				{:else}
 					{totals.switches}
-					{totals.switches === 1 ? 'switch' : 'switches'} over {watchedDays}
+					{totals.switches === 1 ? 'switch' : 'switches'}{hard === null
+						? ''
+						: `, ${hard} of them hard,`} over {watchedDays}
 					{watchedDays === 1 ? 'day' : 'days'} watched, with {spent(totals.focusMs)} of focus and {spent(
 						totals.juggleMs
 					)} juggling, a load of {spent(totals.loadMs)}.
