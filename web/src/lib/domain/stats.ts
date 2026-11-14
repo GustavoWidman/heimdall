@@ -6,6 +6,7 @@ import {
 	liveTotals,
 	type DayView,
 	type Segment,
+	type SwitchRecord,
 	type TransitionKind
 } from './focus';
 import {
@@ -24,7 +25,7 @@ import { hourIn, rangeOf, weekday } from './time';
 const HOUR = 3_600_000;
 
 /** Bump when aggregateDay changes meaning, so cached rows recompute. */
-export const STATS_VERSION = 4;
+export const STATS_VERSION = 5;
 
 /** What a cached aggregate was computed under. A row with another basis is stale. */
 export function basisOf(s: Settings): string {
@@ -42,6 +43,13 @@ export type TaskAggregate = {
 	readonly leftByUrge: number;
 	/** Time on the task per hour since the day began: index 0 is the day's first hour. */
 	readonly msByElapsedHour: readonly number[];
+	/**
+	 * Time on the task with each juggle split evenly among the tasks held: an hour juggling
+	 * two gives each 30m. Whole ms; over all of a day's tasks it adds up to focusMs.
+	 */
+	readonly shareMs: number;
+	/** The part of shareMs spent juggling. Over all of a day's tasks it adds up to juggleMs. */
+	readonly juggleShareMs: number;
 };
 
 /**
@@ -71,6 +79,7 @@ export type DayAggregate = {
 	readonly stretches: readonly number[];
 	readonly firstMark: Instant | null;
 	readonly lastMark: Instant | null;
+	readonly switchLog: readonly SwitchRecord[];
 };
 
 function noReasons(): Record<Reason | 'untagged', number> {
@@ -123,6 +132,26 @@ function hourlyByTask(segs: readonly Segment[], view: DayView): Map<TaskId, numb
 	return out;
 }
 
+function sharesByTask(
+	segs: readonly Segment[]
+): Map<TaskId, { shareMs: number; juggleShareMs: number }> {
+	const out = new Map<TaskId, { shareMs: number; juggleShareMs: number }>();
+	for (const s of segs) {
+		if (s.focus.k !== 'working') continue;
+		const ms = s.end - s.start;
+		const n = s.focus.tasks.length;
+		const each = Math.floor(ms / n);
+		s.focus.tasks.forEach((t, i) => {
+			const share = each + (i < ms % n ? 1 : 0);
+			let acc = out.get(t);
+			if (!acc) out.set(t, (acc = { shareMs: 0, juggleShareMs: 0 }));
+			acc.shareMs += share;
+			if (n > 1) acc.juggleShareMs += share;
+		});
+	}
+	return out;
+}
+
 function urgeLeaves(view: DayView): Map<TaskId, number> {
 	const out = new Map<TaskId, number>();
 	const c = view.carry;
@@ -152,6 +181,7 @@ export function aggregateDay(view: DayView, s: Settings, now?: Instant): DayAggr
 		now === undefined ? { ...view.totals, perTask: view.perTask } : liveTotals(view, now);
 	const segs = timeline(view, now);
 	const hourly = hourlyByTask(segs, view);
+	const shares = sharesByTask(segs);
 	const urge = urgeLeaves(view);
 	const hours = Math.ceil((view.range.end - view.range.start) / HOUR);
 	return {
@@ -169,11 +199,14 @@ export function aggregateDay(view: DayView, s: Settings, now?: Instant): DayAggr
 			task,
 			...d,
 			leftByUrge: urge.get(task) ?? 0,
-			msByElapsedHour: hourly.get(task) ?? new Array<number>(hours).fill(0)
+			msByElapsedHour: hourly.get(task) ?? new Array<number>(hours).fill(0),
+			shareMs: shares.get(task)?.shareMs ?? 0,
+			juggleShareMs: shares.get(task)?.juggleShareMs ?? 0
 		})),
 		stretches: stretchesOf(segs, new Map(view.transitions.map((t) => [t.mark, t.kind]))),
 		firstMark: view.transitions[0]?.at ?? null,
-		lastMark: view.transitions.at(-1)?.at ?? null
+		lastMark: view.transitions.at(-1)?.at ?? null,
+		switchLog: view.switchLog
 	};
 }
 

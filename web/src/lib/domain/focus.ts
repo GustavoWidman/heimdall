@@ -36,12 +36,23 @@ export const FOLD_START: FoldState = { focus: OFF, held: null };
  */
 export type TransitionKind = 'start' | 'switch' | 'resume' | 'narrow' | 'rest' | 'off' | 'none';
 
-export type StepResult = {
-	readonly next: FoldState;
-	readonly kind: TransitionKind;
-	/** The task that entered the working set. Non-null exactly for start, switch, resume. */
-	readonly entered: TaskId | null;
-};
+/**
+ * `entered` is the task that entered the working set. A switch also says what it switched
+ * away from: the working set, or, out of rest, the set held before the rest.
+ */
+export type StepResult =
+	| {
+			readonly next: FoldState;
+			readonly kind: 'switch';
+			readonly entered: TaskId;
+			readonly from: TaskSet;
+	  }
+	| { readonly next: FoldState; readonly kind: 'start' | 'resume'; readonly entered: TaskId }
+	| {
+			readonly next: FoldState;
+			readonly kind: 'narrow' | 'rest' | 'off' | 'none';
+			readonly entered: null;
+	  };
 
 function working(tasks: TaskSet): FoldState {
 	return { focus: { k: 'working', tasks }, held: null };
@@ -61,12 +72,12 @@ export function step(state: FoldState, g: Gesture): StepResult {
 					return { next: working(TaskSet.of(g.task)), kind: 'narrow', entered: null };
 				}
 				const tasks = g.k === 'tap' ? TaskSet.of(g.task) : TaskSet.with(f.tasks, g.task);
-				return { next: working(tasks), kind: 'switch', entered: g.task };
+				return { next: working(tasks), kind: 'switch', entered: g.task, from: f.tasks };
 			}
 			const next = working(TaskSet.of(g.task));
 			if (f.k === 'rest' && state.held) {
-				const kind = TaskSet.has(state.held, g.task) ? 'resume' : 'switch';
-				return { next, kind, entered: g.task };
+				if (TaskSet.has(state.held, g.task)) return { next, kind: 'resume', entered: g.task };
+				return { next, kind: 'switch', entered: g.task, from: state.held };
 			}
 			return { next, kind: 'start', entered: g.task };
 		}
@@ -210,6 +221,13 @@ export type Totals = {
 	readonly restMs: number;
 };
 
+/**
+ * One switch as a day keeps it: the task entered and the tasks held just before. Task ids
+ * only, so tags join when read and retagging a task reclassifies its past switches without
+ * recomputing any day.
+ */
+export type SwitchRecord = { readonly into: TaskId; readonly from: TaskSet };
+
 export type DayView = {
 	readonly range: DayRange;
 	readonly carry: FoldState;
@@ -220,6 +238,8 @@ export type DayView = {
 	/** One per non-voided mark in the day, in timeline order. */
 	readonly transitions: readonly Transition[];
 	readonly switches: number;
+	/** One per switch, in timeline order. Its length is `switches`. */
+	readonly switchLog: readonly SwitchRecord[];
 	readonly ticks: number;
 	/** Closed time only; see liveTotals for the running values. */
 	readonly perTask: ReadonlyMap<TaskId, TaskDay>;
@@ -273,6 +293,7 @@ export function deriveDay(
 	const transitions: Transition[] = [];
 	const perTask = new Map<TaskId, MutableTaskDay>();
 	const totals = { focusMs: 0, juggleMs: 0, loadMs: 0, restMs: 0 };
+	const switchLog: SwitchRecord[] = [];
 	let state = carry;
 	let cursor = range.start;
 	let segMark: MarkId | null = null;
@@ -297,13 +318,13 @@ export function deriveDay(
 		transitions.push(t);
 		if (r.entered) {
 			ticks++;
-			const d = taskDay(perTask, r.entered);
-			d.ticks++;
-			if (r.kind === 'switch') {
-				d.switchesIn++;
-				switches++;
-				lastSwitch = t;
-			}
+			taskDay(perTask, r.entered).ticks++;
+		}
+		if (r.kind === 'switch') {
+			taskDay(perTask, r.entered).switchesIn++;
+			switches++;
+			switchLog.push({ into: r.entered, from: r.from });
+			lastSwitch = t;
 		}
 		if (!sameFocus(state.focus, r.next.focus)) {
 			if (m.at > cursor) {
@@ -332,6 +353,7 @@ export function deriveDay(
 		tail,
 		transitions,
 		switches,
+		switchLog,
 		ticks,
 		perTask,
 		totals,
