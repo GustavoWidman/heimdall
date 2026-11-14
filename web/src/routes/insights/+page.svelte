@@ -4,6 +4,7 @@
 	import type { DayKey, Insights } from '#lib/app/app.svelte.ts';
 	import Iris from '#lib/ui/Iris.svelte';
 	import { useCtx } from '#lib/ui/watch.svelte.ts';
+	import AreasCard from '#lib/insights/AreasCard.svelte';
 	import DeadlinesCard from '#lib/insights/DeadlinesCard.svelte';
 	import HeatCard from '#lib/insights/HeatCard.svelte';
 	import ReasonsCard from '#lib/insights/ReasonsCard.svelte';
@@ -104,6 +105,7 @@
 					<StrainCard data={i} {today} bind:selected onopen={open} />
 					<HeatCard heat={i.heat} days={i.series.filter((p) => p.tracked).length} />
 					<ReasonsCard data={i} {today} bind:selected onopen={open} />
+					<AreasCard areas={i.areas} named={app.areas.known.length > 0} />
 					<StretchCard data={i} {today} bind:selected onopen={open} />
 					<TasksCard tasks={i.tasks} all={app.tasks} />
 					<DeadlinesCard
@@ -168,6 +170,7 @@
 			'strain'
 			'heat'
 			'why'
+			'tags'
 			'stretch'
 			'tasks'
 			'deadlines';
@@ -219,6 +222,7 @@
 				'switches switches standouts'
 				'strain strain why'
 				'heat heat stretch'
+				'tasks tasks tags'
 				'tasks tasks deadlines';
 		}
 	}

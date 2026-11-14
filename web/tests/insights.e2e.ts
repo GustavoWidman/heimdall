@@ -1,5 +1,5 @@
-import { expect, open, test } from './support/fixtures';
-import { addDays, at, busyToday, history, TODAY } from './support/seed';
+import { expect, open, shot, test } from './support/fixtures';
+import { addDays, at, busyToday, history, Seed, TODAY } from './support/seed';
 
 test.use({ startAt: at(TODAY, '15:42') });
 
@@ -42,4 +42,69 @@ test('deadlines still ahead show next to those that passed', async ({ page, requ
 		/review pr #412.*due fri 13 nov, 12:00/,
 		/call the dentist.*due sun 8 nov, 10:00/
 	]);
+});
+
+test('the tags card shows which tag takes the switches, the focus and the juggling', async ({
+	page,
+	request
+}, info) => {
+	const yday = addDays(TODAY, -1);
+	await new Seed()
+		.task('seed_report', 'quarterly report', 32, { area: 'work' })
+		.task('seed_inbox', 'inbox', 200, { area: 'work' })
+		.task('seed_essay', 'essay', 140, { area: 'college' })
+		.task('seed_dentist', 'call the dentist', 350)
+		.mark(at(yday, '09:00'), { k: 'tap', task: 'seed_report' })
+		.mark(at(yday, '10:00'), { k: 'tap', task: 'seed_essay' })
+		.mark(at(yday, '11:00'), { k: 'tap', task: 'seed_inbox' })
+		.mark(at(yday, '12:00'), { k: 'tap', task: 'seed_report' })
+		.mark(at(yday, '12:30'), { k: 'hold', task: 'seed_dentist' })
+		.mark(at(yday, '13:00'), { k: 'off' })
+		.push(request);
+	await open(page, '/insights');
+	const card = page.getByRole('region', { name: 'tags' });
+	const measure = card.getByRole('group', { name: 'measure tags by' });
+
+	await expect(card).toContainText('4 switches · 2 hard · 1 soft · 1 unsorted');
+	await expect(card.getByRole('listitem')).toHaveText([
+		/^work\s*50%\s*2\s*1 hard · 1 soft · 0 unsorted\s*$/,
+		/^college\s*25%\s*1\s*1 hard · 0 soft · 0 unsorted\s*$/,
+		/^no tag\s*25%\s*1\s*0 hard · 0 soft · 1 unsorted\s*$/
+	]);
+	await card.scrollIntoViewIfNeeded();
+	await shot(page, `${info.project.name}-insights-tags`);
+
+	await expect(measure.getByRole('button', { name: 'switches' })).toHaveAttribute(
+		'aria-pressed',
+		'true'
+	);
+	await measure.getByRole('button', { name: 'focus' }).click();
+	await expect(measure.getByRole('button', { name: 'focus' })).toHaveAttribute(
+		'aria-pressed',
+		'true'
+	);
+	await expect(card.getByRole('listitem')).toHaveText([
+		/^work\s*69%\s*2h45\s*$/,
+		/^college\s*25%\s*1h00\s*$/,
+		/^no tag\s*6%\s*15m\s*$/
+	]);
+
+	await measure.getByRole('button', { name: 'juggle' }).click();
+	await expect(card.getByRole('listitem')).toHaveText([
+		/^work\s*50%\s*15m\s*$/,
+		/^no tag\s*50%\s*15m\s*$/
+	]);
+});
+
+test('the tags card asks for a tag while no task has one', async ({ page, request }) => {
+	await new Seed()
+		.task('seed_report', 'quarterly report', 32)
+		.mark(at(addDays(TODAY, -1), '09:00'), { k: 'tap', task: 'seed_report' })
+		.mark(at(addDays(TODAY, -1), '10:00'), { k: 'off' })
+		.push(request);
+	await open(page, '/insights');
+	const card = page.getByRole('region', { name: 'tags' });
+	await expect(card).toContainText('give tasks a tag, like work or college');
+	await card.getByRole('link', { name: 'tasks' }).click();
+	await expect(page).toHaveURL(/\/tasks$/);
 });
