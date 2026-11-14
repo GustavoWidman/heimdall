@@ -13,7 +13,8 @@ function task(hue: number, status: Task['status'] = 'active'): Task {
 		deadline: null,
 		longRunning: false,
 		status,
-		createdAt: n
+		createdAt: n,
+		area: null
 	} as unknown as Task;
 }
 

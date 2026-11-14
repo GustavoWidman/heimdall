@@ -186,7 +186,33 @@ export type Task = {
 	readonly longRunning: boolean;
 	readonly status: TaskStatus;
 	readonly createdAt: Instant;
+	readonly area: Area | null;
 };
+
+/**
+ * A task's area of life, which the app shows as its tag; in code `tag` already names a
+ * switch reason. Lowercase, trimmed, inner runs of whitespace as one space, 1..AREA_MAX
+ * characters. Equal areas are equal strings, so grouping by value is grouping by area.
+ */
+export type Area = Brand<string, 'Area'>;
+
+export const AREA_MAX = 32;
+
+/**
+ * Normalizes, then validates: "  Work ", "WORK" and "work" all read as "work". Null when
+ * nothing is left or it runs past AREA_MAX. Idempotent: area(area(x)) === area(x).
+ */
+export function area(json: unknown): Area | null {
+	if (typeof json !== 'string') return null;
+	// toLowerCase, not toLocaleLowerCase: every device must reach the same string.
+	const s = json
+		.normalize('NFC')
+		.replace(/\p{Cc}/gu, ' ')
+		.trim()
+		.replace(/\s+/g, ' ')
+		.toLowerCase();
+	return s.length >= 1 && s.length <= AREA_MAX ? (s as Area) : null;
+}
 
 export const NOTE_MAX = 4000;
 

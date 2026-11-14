@@ -3,6 +3,8 @@ import { boardOrder, rankBetween } from './board';
 import { isCheckInKey, parseCheckInValue, type CheckInPatch } from './checkin';
 import { step, type FoldState } from './focus';
 import {
+	area,
+	AREA_MAX,
 	dayStartHour,
 	bounceMinutes,
 	hue,
@@ -66,6 +68,8 @@ type TaskInput = {
 	readonly hue?: number;
 	readonly deadline?: Instant | null;
 	readonly longRunning?: boolean;
+	/** Null or blank clears it; decide normalizes. */
+	readonly area?: string | null;
 };
 
 /** What decide may read. The app builds it from the loaded data. */
@@ -159,6 +163,7 @@ export function decide(ctx: DecideContext, intent: Intent): Decision {
 						longRunning: false,
 						status: 'active',
 						createdAt: ctx.now,
+						area: null,
 						...fields.set
 					}
 				}
@@ -167,10 +172,12 @@ export function decide(ctx: DecideContext, intent: Intent): Decision {
 			return ok(...changes);
 		}
 		case 'editTask': {
-			if (!ctx.task(intent.task)) return reject('task', 'unknown task');
+			const task = ctx.task(intent.task);
+			if (!task) return reject('task', 'unknown task');
 			const fields = taskFields(intent);
 			if (!fields.ok) return fields.decision;
 			const set: { -readonly [F in keyof Partial<Task>]: Task[F] } = { ...fields.set };
+			if (set.area === task.area) delete set.area;
 			if (intent.title !== undefined) {
 				const t = title(intent.title);
 				if (!t) return reject('title', 'needs 1 to 200 characters');
@@ -226,7 +233,7 @@ export function decide(ctx: DecideContext, intent: Intent): Decision {
 	}
 }
 
-type TaskFields = Partial<Pick<Task, 'note' | 'hue' | 'deadline' | 'longRunning'>>;
+type TaskFields = Partial<Pick<Task, 'note' | 'hue' | 'deadline' | 'longRunning' | 'area'>>;
 
 function taskFields(
 	input: TaskInput
@@ -252,6 +259,14 @@ function taskFields(
 		set.deadline = d;
 	}
 	if (input.longRunning !== undefined) set.longRunning = input.longRunning;
+	if (input.area !== undefined) {
+		const raw = input.area?.trim() ? input.area : null;
+		const a = raw === null ? null : area(raw);
+		if (raw !== null && a === null) {
+			return { ok: false, decision: reject('area', `needs at most ${AREA_MAX} characters`) };
+		}
+		set.area = a;
+	}
 	return { ok: true, set };
 }
 
