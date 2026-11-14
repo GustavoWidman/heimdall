@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { carryIn, deriveDay } from './focus';
-import type { DayKey, Hue, Instant, MarkId, Task, TaskId, Title } from './model';
+import type { DayKey, Gesture, Hue, Instant, Mark, MarkId, Task, TaskId, Title } from './model';
 import {
 	aggregateDay,
 	aggregateDays,
@@ -76,9 +76,103 @@ describe('aggregateDay on the notebook day', () => {
 		expect(nonzero).toEqual({ 8: 40, 9: 50, 10: 30, 14: 60, 15: 50, 16: 35 });
 	});
 
+	it('keeps the switch log the day was derived with', () => {
+		expect(agg.switchLog).toBe(view.switchLog);
+	});
+
 	it('names the settings it was computed under, so a zone change makes it stale', () => {
 		expect(basisOf({ ...notebook.settings, dayStartHour: 5 as never })).not.toBe(agg.basis);
 		expect(basisOf({ ...notebook.settings, bounceMinutes: 5 as never })).not.toBe(agg.basis);
+	});
+});
+
+describe('even-split shares', () => {
+	const at = (hhmm: string) => notebook.local(notebook.day, hhmm);
+	const a = 't_a' as TaskId;
+	const b = 't_b' as TaskId;
+	const c = 't_c' as TaskId;
+	let n = 0;
+	const mark = (when: number, gesture: Gesture): Mark => ({
+		id: `m_${String(++n).padStart(3, '0')}` as MarkId,
+		at: when as Instant,
+		gesture,
+		voided: false,
+		reason: null
+	});
+	const shares = (marks: readonly Mark[], now?: Instant) => {
+		const v = deriveDay(marks, range, carryIn(marks, range.start), now !== undefined);
+		const day = aggregateDay(v, notebook.settings, now);
+		return {
+			focusMs: day.focusMs,
+			juggleMs: day.juggleMs,
+			tasks: Object.fromEntries(
+				day.tasks.map((t) => [t.task, [t.shareMs / MIN, t.juggleShareMs / MIN]])
+			)
+		};
+	};
+
+	it('splits an hour juggling two tasks into 30m each', () => {
+		expect(
+			shares([
+				mark(at('09:00'), { k: 'tap', task: a }),
+				mark(at('10:00'), { k: 'hold', task: c }),
+				mark(at('11:00'), { k: 'off' })
+			]).tasks
+		).toEqual({ [a]: [90, 30], [c]: [30, 30] });
+	});
+
+	it('adds up to the day’s focus and juggle time', () => {
+		const s = shares([
+			mark(at('09:00'), { k: 'tap', task: a }),
+			mark(at('09:30'), { k: 'hold', task: b }),
+			mark(at('10:00'), { k: 'hold', task: c }),
+			mark(at('11:00'), { k: 'off' })
+		]);
+		expect(s.tasks).toEqual({ [a]: [65, 35], [b]: [35, 35], [c]: [20, 20] });
+		expect([s.focusMs, s.juggleMs]).toEqual([120 * MIN, 90 * MIN]);
+	});
+
+	it('keeps shares in whole ms, giving the odd ms to the first tasks', () => {
+		const t0 = at('09:00');
+		const v = deriveDay(
+			[
+				mark(t0, { k: 'tap', task: a }),
+				mark(t0, { k: 'hold', task: b }),
+				mark(t0, { k: 'hold', task: c }),
+				mark(t0 + 7, { k: 'off' })
+			],
+			range,
+			carryIn([], range.start),
+			false
+		);
+		const day = aggregateDay(v, notebook.settings);
+		expect(day.tasks.map((t) => [t.task, t.shareMs, t.juggleShareMs])).toEqual([
+			[a, 3, 3],
+			[b, 2, 2],
+			[c, 2, 2]
+		]);
+	});
+
+	it('counts a live day’s open stretch up to now', () => {
+		expect(
+			shares(
+				[mark(at('09:00'), { k: 'tap', task: a }), mark(at('09:30'), { k: 'hold', task: c })],
+				at('10:00')
+			).tasks
+		).toEqual({ [a]: [45, 15], [c]: [15, 15] });
+	});
+
+	it('splits the notebook day to the ms', () => {
+		const share = new Map(agg.tasks.map((t) => [t.task, [t.shareMs, t.juggleShareMs]]));
+		const SEC = 1000;
+		expect(share).toEqual(
+			new Map([
+				[notebook.mail, [75 * MIN + 50 * SEC, 40 * MIN + 50 * SEC]],
+				[notebook.report, [230 * MIN, 35 * MIN]],
+				[notebook.slack, [13 * MIN + 20 * SEC, 8 * MIN + 20 * SEC]],
+				[notebook.code, [240 * MIN + 50 * SEC, 70 * MIN + 50 * SEC]]
+			])
+		);
 	});
 });
 

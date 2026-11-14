@@ -49,35 +49,51 @@ const rest: Gesture = { k: 'rest' };
 const offG: Gesture = { k: 'off' };
 
 describe('the switching table', () => {
-	const rows: [string, FoldState, Gesture, FoldState, TransitionKind, TaskId | null][] = [
-		['tap t in S, S has others', working(a, b), tap(a), working(a), 'narrow', null],
-		['tap t in S, S = {t}', working(a), tap(a), working(a), 'none', null],
-		['tap t not in S, from working', working(a), tap(b), working(b), 'switch', b],
-		['tap t from rest, t held', resting(a, b), tap(a), working(a), 'resume', a],
-		['tap t from rest, t not held', resting(a), tap(b), working(b), 'switch', b],
-		['tap t from off', off, tap(a), working(a), 'start', a],
-		['tap t from rest with nothing held', resting(), tap(a), working(a), 'start', a],
-		['hold t not in S, from working', working(a), hold(b), working(a, b), 'switch', b],
-		['hold t from rest, t held', resting(a), hold(a), working(a), 'resume', a],
-		['hold t from rest, t not held', resting(a), hold(b), working(b), 'switch', b],
-		['hold t from off', off, hold(a), working(a), 'start', a],
-		['hold t from rest with nothing held', resting(), hold(a), working(a), 'start', a],
-		['hold t in S', working(a, b), hold(a), working(a, b), 'none', null],
-		['release t in S, S has others', working(a, b), release(a), working(b), 'narrow', null],
-		['release t from rest', resting(a), release(a), resting(a), 'none', null],
-		['release t from off', off, release(a), off, 'none', null],
-		['release t, S = {t}', working(a), release(a), resting(a), 'rest', null],
-		['rest from working', working(a, b), rest, resting(a, b), 'rest', null],
-		['rest from rest', resting(a), rest, resting(a), 'none', null],
-		['rest from off', off, rest, off, 'none', null],
-		['off from working', working(a), offG, off, 'off', null],
-		['off from rest', resting(a), offG, off, 'off', null],
-		['off from off', off, offG, off, 'none', null],
-		['release t not in S (outside the table)', working(a), release(b), working(a), 'none', null]
+	const rows: [
+		string,
+		FoldState,
+		Gesture,
+		FoldState,
+		TransitionKind,
+		TaskId | null,
+		TaskSet | null
+	][] = [
+		['tap t in S, S has others', working(a, b), tap(a), working(a), 'narrow', null, null],
+		['tap t in S, S = {t}', working(a), tap(a), working(a), 'none', null, null],
+		['tap t not in S, from working', working(a), tap(b), working(b), 'switch', b, set(a)],
+		['tap t from rest, t held', resting(a, b), tap(a), working(a), 'resume', a, null],
+		['tap t from rest, t not held', resting(a), tap(b), working(b), 'switch', b, set(a)],
+		['tap t from off', off, tap(a), working(a), 'start', a, null],
+		['tap t from rest with nothing held', resting(), tap(a), working(a), 'start', a, null],
+		['hold t not in S, from working', working(a), hold(b), working(a, b), 'switch', b, set(a)],
+		['hold t from rest, t held', resting(a), hold(a), working(a), 'resume', a, null],
+		['hold t from rest, t not held', resting(a), hold(b), working(b), 'switch', b, set(a)],
+		['hold t from off', off, hold(a), working(a), 'start', a, null],
+		['hold t from rest with nothing held', resting(), hold(a), working(a), 'start', a, null],
+		['hold t in S', working(a, b), hold(a), working(a, b), 'none', null, null],
+		['release t in S, S has others', working(a, b), release(a), working(b), 'narrow', null, null],
+		['release t from rest', resting(a), release(a), resting(a), 'none', null, null],
+		['release t from off', off, release(a), off, 'none', null, null],
+		['release t, S = {t}', working(a), release(a), resting(a), 'rest', null, null],
+		['rest from working', working(a, b), rest, resting(a, b), 'rest', null, null],
+		['rest from rest', resting(a), rest, resting(a), 'none', null, null],
+		['rest from off', off, rest, off, 'none', null, null],
+		['off from working', working(a), offG, off, 'off', null, null],
+		['off from rest', resting(a), offG, off, 'off', null, null],
+		['off from off', off, offG, off, 'none', null, null],
+		[
+			'release t not in S (outside the table)',
+			working(a),
+			release(b),
+			working(a),
+			'none',
+			null,
+			null
+		]
 	];
 
-	it.each(rows)('%s', (_name, from, gesture, next, kind, entered) => {
-		expect(step(from, gesture)).toEqual({ next, kind, entered });
+	it.each(rows)('%s', (_name, state, gesture, next, kind, entered, from) => {
+		expect(step(state, gesture)).toEqual({ next, kind, entered, ...(from && { from }) });
 	});
 });
 
@@ -250,6 +266,55 @@ describe('walk-throughs', () => {
 		const m2 = { ...mark(t, tap(b)), id: 'm_x2' as MarkId };
 		expect(closedDay([m2, m1]).state.focus).toEqual(focusOf(b));
 		expect(closedDay([m1, m2]).state.focus).toEqual(focusOf(b));
+	});
+});
+
+describe('the switch log', () => {
+	const log = (marks: readonly Mark[], day: DayKey = DAY) =>
+		closedDay(marks, day).switchLog.map((r) => [r.into, [...r.from]]);
+
+	it('keeps each switch with the set it left: a juggle, a narrowed set, and the set held before a rest', () => {
+		expect(
+			log([
+				mark(at('09:00'), tap(a)),
+				mark(at('09:10'), hold(b)),
+				mark(at('09:20'), tap(b)),
+				mark(at('09:30'), hold(c)),
+				mark(at('09:40'), rest),
+				mark(at('09:50'), tap(a)),
+				mark(at('10:00'), rest),
+				mark(at('10:10'), tap(a))
+			])
+		).toEqual([
+			[b, [a]],
+			[c, [b]],
+			[a, [b, c]]
+		]);
+	});
+
+	it('forgets the held set at off, so the next task is a start', () => {
+		expect(
+			log([mark(at('09:00'), tap(a)), mark(at('09:10'), offG), mark(at('09:20'), tap(c))])
+		).toEqual([]);
+	});
+
+	it('reads the set carried across the day start, held or resting', () => {
+		const next = '2026-11-10' as DayKey;
+		expect(log([mark(at('23:00'), tap(a)), mark(at('05:00', next), tap(c))], next)).toEqual([
+			[c, [a]]
+		]);
+		expect(
+			log(
+				[mark(at('22:00'), tap(a)), mark(at('23:00'), rest), mark(at('05:00', next), tap(c))],
+				next
+			)
+		).toEqual([[c, [a]]]);
+	});
+
+	it('has one record per switch on the notebook day', () => {
+		const range = rangeOf(notebook.day, notebook.settings);
+		const v = deriveDay(notebook.marks, range, carryIn(notebook.marks, range.start), false);
+		expect(v.switchLog).toHaveLength(notebook.expected.switches);
 	});
 });
 
