@@ -1,4 +1,5 @@
 import { SvelteSet, createSubscriber } from 'svelte/reactivity';
+import { areasOf, type Areas } from '../domain/areas';
 import { deriveBoard, suggestPlan, type BoardRow, type PlanSuggestions } from '../domain/board';
 import type { CheckIn } from '../domain/checkin';
 import { decide, type Decision, type Intent } from '../domain/commands';
@@ -40,12 +41,15 @@ import { Replica } from '../replica/replica.svelte';
 import type { Touched } from '../replica/store';
 import { Sync, type LoginResult, type SyncEnv, type SyncStatus } from '../replica/sync';
 
+export type { AreaBreakdown, AreaRow, Areas, SwitchClass, SwitchSplit } from '../domain/areas';
+export { SWITCH_CLASSES, hardOf, splitSwitches } from '../domain/areas';
 export type { BoardRow, PlanSuggestions } from '../domain/board';
 export type { CheckIn, CheckInKey, FieldDef } from '../domain/checkin';
 export { CHECKIN_FIELDS, CHECKIN_KEYS } from '../domain/checkin';
 export type { Decision, Intent } from '../domain/commands';
 export type { DayView, Segment, Transition, TransitionKind } from '../domain/focus';
 export type {
+	Area,
 	DayKey,
 	Focus,
 	Instant,
@@ -56,7 +60,7 @@ export type {
 	TaskId,
 	TaskStatus
 } from '../domain/model';
-export { REASONS, dayKey } from '../domain/model';
+export { AREA_MAX, REASONS, area, dayKey } from '../domain/model';
 export { addDays } from '../domain/time';
 export type {
 	Baseline,
@@ -168,6 +172,8 @@ export class App {
 	readonly tasks: readonly Task[] = $derived(
 		[...this.#taskMap.values()].sort((a, b) => a.createdAt - b.createdAt || (a.id < b.id ? -1 : 1))
 	);
+
+	readonly areas: Areas = $derived(areasOf(this.#taskMap.values()));
 
 	readonly #marks: readonly Mark[] = $derived.by(() => {
 		const out: Mark[] = [];
