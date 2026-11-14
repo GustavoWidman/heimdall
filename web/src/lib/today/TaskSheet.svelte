@@ -1,9 +1,9 @@
 <!--
-	Create or edit a task: title, color, deadline, long-term, note. An existing task also
+	Create or edit a task: title, color, tag, deadline, long-term, note. An existing task also
 	gets its place on today's board, done and archive, and juggling without a long press.
 -->
 <script lang="ts">
-	import type { Instant, Intent, Task } from '#lib/app/app.svelte.ts';
+	import { AREA_MAX, area, type Instant, type Intent, type Task } from '#lib/app/app.svelte.ts';
 	import { HOUR, toLocalInput } from '#lib/ui/format.ts';
 	import { freeHue, PALETTE } from '#lib/ui/hue.ts';
 	import { useCtx } from '#lib/ui/watch.svelte.ts';
@@ -33,10 +33,13 @@
 	const start = task;
 	let title = $state(start?.title ?? '');
 	let hue = $state<number>(start?.hue ?? freeHue(app.tasks));
+	let tag = $state<string>(start?.area ?? '');
 	let deadline = $state(start?.deadline != null ? toLocalInput(start.deadline) : '');
 	let longRunning = $state(start?.longRunning ?? false);
 	let note = $state(start?.note ?? '');
 	let problem: { field: string; text: string } | null = $state(null);
+
+	const tagged = $derived(area(tag));
 
 	const swatches = $derived(
 		(PALETTE as readonly number[]).includes(hue) ? PALETTE : [hue, ...PALETTE]
@@ -48,7 +51,8 @@
 			hue,
 			deadline: at === null || Number.isNaN(at) ? null : at,
 			longRunning,
-			note: note.trim() ? note : null
+			note: note.trim() ? note : null,
+			area: tag
 		} as const;
 	}
 
@@ -61,6 +65,7 @@
 					task: task.id,
 					...(title !== task.title ? { title } : {}),
 					...(f.hue !== task.hue ? { hue: f.hue } : {}),
+					...(tagged !== task.area ? { area: f.area } : {}),
 					...(f.deadline !== task.deadline ? { deadline: f.deadline as Instant | null } : {}),
 					...(f.longRunning !== task.longRunning ? { longRunning: f.longRunning } : {}),
 					...(f.note !== task.note ? { note: f.note } : {})
@@ -107,6 +112,38 @@
 				</label>
 			{/each}
 		</div>
+	</div>
+
+	<div class="fld">
+		<label class="nm" for="task-tag">tag</label>
+		<input
+			id="task-tag"
+			class="field"
+			bind:value={tag}
+			maxlength={AREA_MAX}
+			autocapitalize="none"
+			autocomplete="off"
+			placeholder="none"
+			aria-describedby="task-tag-hint"
+			aria-invalid={problem?.field === 'area' ? true : undefined}
+		/>
+		{#if app.areas.known.length}
+			<div class="tags" id="task-tag-hint" role="group" aria-label="tags in use">
+				{#each app.areas.known as t (t)}
+					<button
+						type="button"
+						class="chip"
+						aria-pressed={tagged === t}
+						onclick={() => (tag = tagged === t ? '' : t)}
+					>
+						{t}
+					</button>
+				{/each}
+			</div>
+		{:else}
+			<span class="hint" id="task-tag-hint">an area of life, like work or college.</span>
+		{/if}
+		{#if problem?.field === 'area'}<span class="problem" role="alert">{problem.text}</span>{/if}
 	</div>
 
 	<div class="fld">
@@ -267,6 +304,14 @@
 		position: absolute;
 		opacity: 0;
 		pointer-events: none;
+	}
+	.tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+	.tags .chip {
+		font-size: 13.5px;
 	}
 	.inline {
 		display: flex;

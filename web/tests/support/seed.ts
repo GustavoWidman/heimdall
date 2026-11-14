@@ -34,7 +34,13 @@ export class Seed {
 		id: string,
 		title: string,
 		hue: number,
-		extra: { deadline?: number; longRunning?: boolean; status?: string; createdAt?: number } = {}
+		extra: {
+			deadline?: number;
+			longRunning?: boolean;
+			status?: string;
+			createdAt?: number;
+			area?: string | null;
+		} = {}
 	): this {
 		this.ops.push({
 			kind: 'task',
@@ -46,7 +52,8 @@ export class Seed {
 				deadline: extra.deadline ?? null,
 				longRunning: extra.longRunning ?? false,
 				status: extra.status ?? 'active',
-				createdAt: extra.createdAt ?? at('2026-09-01', '09:00')
+				createdAt: extra.createdAt ?? at('2026-09-01', '09:00'),
+				area: extra.area ?? null
 			}
 		});
 		return this;
@@ -94,11 +101,11 @@ export class Seed {
 }
 
 export const TASKS = [
-	{ id: 'seed_report', title: 'quarterly report', hue: 32 },
-	{ id: 'seed_inbox', title: 'inbox, the bearable parts', hue: 200 },
-	{ id: 'seed_review', title: 'review pr #412', hue: 280 },
-	{ id: 'seed_thesis', title: 'thesis · chapter 3', hue: 140 },
-	{ id: 'seed_dentist', title: 'call the dentist', hue: 350 }
+	{ id: 'seed_report', title: 'quarterly report', hue: 32, area: 'work' },
+	{ id: 'seed_inbox', title: 'inbox, the bearable parts', hue: 200, area: 'work' },
+	{ id: 'seed_review', title: 'review pr #412', hue: 280, area: 'college' },
+	{ id: 'seed_thesis', title: 'thesis · chapter 3', hue: 140, area: 'college' },
+	{ id: 'seed_dentist', title: 'call the dentist', hue: 350, area: null }
 ] as const;
 
 const REASONS = ['done', 'blocked', 'urge', 'pulled', null, null] as const;
@@ -109,7 +116,9 @@ const REASONS = ['done', 'blocked', 'urge', 'pulled', null, null] as const;
  */
 export function history(days: number): Seed {
 	const seed = new Seed();
-	for (const t of TASKS) seed.task(t.id, t.title, t.hue, { longRunning: t.id === 'seed_thesis' });
+	for (const t of TASKS) {
+		seed.task(t.id, t.title, t.hue, { longRunning: t.id === 'seed_thesis', area: t.area });
+	}
 	seed.task('seed_old', 'renew the passport', 60, { status: 'done' });
 	seed.task('seed_gone', 'learn the banjo', 100, { status: 'archived' });
 	let r = 7;
@@ -149,7 +158,7 @@ export function history(days: number): Seed {
 
 /** A busy morning and afternoon on `TODAY`, up to 15:30, with juggles, a rest, and reasons. */
 export function busyToday(seed: Seed): Seed {
-	seed.task('seed_report', 'quarterly report', 32, { deadline: at(TODAY, '17:52') });
+	seed.task('seed_report', 'quarterly report', 32, { deadline: at(TODAY, '17:52'), area: 'work' });
 	seed.task('seed_groceries', 'groceries for the week', 90);
 	const board = [
 		'seed_report',
