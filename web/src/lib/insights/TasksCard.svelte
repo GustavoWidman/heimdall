@@ -47,7 +47,7 @@
 		}
 	];
 
-	let measure = $state<Measure>(MEASURES[0]);
+	let measure = $state.raw<Measure>(MEASURES[0]);
 	let more = $state(false);
 	const byId = $derived(new Map<TaskId, Task>(all.map((t) => [t.id, t])));
 	const rows = $derived(

@@ -15,6 +15,25 @@ test('the window switches between 7, 30, and 90 days', async ({ page, request })
 	await expect(page.getByText('the last 90 days', { exact: true }).first()).toBeVisible();
 });
 
+test('the tasks card marks the measure it ranks by', async ({ page, request }) => {
+	await busyToday(history(30)).push(request);
+	await open(page, '/insights');
+	const measures = page.getByRole('group', { name: 'rank tasks by' });
+	await expect(measures.getByRole('button', { name: 'into' })).toHaveAttribute(
+		'aria-pressed',
+		'true'
+	);
+	await measures.getByRole('button', { name: 'time' }).click();
+	await expect(measures.getByRole('button', { name: 'time' })).toHaveAttribute(
+		'aria-pressed',
+		'true'
+	);
+	await expect(measures.getByRole('button', { name: 'into' })).toHaveAttribute(
+		'aria-pressed',
+		'false'
+	);
+});
+
 test('a day picked on a chart opens that day in history', async ({ page, request, touch }) => {
 	await busyToday(history(30)).push(request);
 	await open(page, '/insights');
