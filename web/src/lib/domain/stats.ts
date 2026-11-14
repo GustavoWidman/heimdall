@@ -1,3 +1,4 @@
+import { areaBreakdown, areasOf, type AreaBreakdown } from './areas';
 import type { CheckIn } from './checkin';
 import {
 	CARRY_LOOKBACK_MS,
@@ -629,6 +630,8 @@ export type Insights = {
 	readonly baseline: Baseline | null;
 	readonly deadlines: readonly DeadlinePressure[];
 	readonly standouts: readonly string[];
+	/** Switches, focus and juggle per area over the days, and how the switches classify. */
+	readonly areas: AreaBreakdown;
 };
 
 export function insights(days: readonly DaySummary[], ctx: InsightsContext): Insights {
@@ -650,6 +653,7 @@ export function insights(days: readonly DaySummary[], ctx: InsightsContext): Ins
 			tracked.filter((a) => a.day !== ctx.today),
 			tasks,
 			(t) => titles.get(t) ?? 'a task'
-		)
+		),
+		areas: areaBreakdown(aggs, areasOf(ctx.tasks))
 	};
 }

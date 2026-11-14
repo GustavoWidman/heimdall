@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { DayKey, Instant, MarkId, TaskId } from '../domain/model';
-import { App } from './app.svelte';
+import { App, splitSwitches } from './app.svelte';
 
 const at = (iso: string) => Date.parse(`${iso}-03:00`);
 let clock = at('2026-11-10T09:00:00');
@@ -9,10 +9,11 @@ let ids = 0;
 const opened: App[] = [];
 
 async function open(
-	fetch: typeof globalThis.fetch = async () => new Response(null, { status: 401 })
+	fetch: typeof globalThis.fetch = async () => new Response(null, { status: 401 }),
+	dbName = `app-${Math.random()}`
 ) {
 	const app = await App.open({
-		dbName: `app-${Math.random()}`,
+		dbName,
 		now: () => clock,
 		deviceZone: 'America/Sao_Paulo',
 		newId: () => String(++ids).padStart(6, '0'),
@@ -125,6 +126,54 @@ describe('history', () => {
 			'2026-11-09',
 			'2026-11-10'
 		]);
+	});
+});
+
+async function stored(dbName: string, store: string, key: string): Promise<unknown> {
+	const db = await new Promise<IDBDatabase>((resolve, reject) => {
+		const req = indexedDB.open(dbName);
+		req.onsuccess = () => resolve(req.result);
+		req.onerror = () => reject(req.error);
+	});
+	try {
+		return await new Promise((resolve, reject) => {
+			const req = db.transaction(store, 'readonly').objectStore(store).get(key);
+			req.onsuccess = () => resolve(req.result);
+			req.onerror = () => reject(req.error);
+		});
+	} finally {
+		db.close();
+	}
+}
+
+describe('tags', () => {
+	it('reclassifies a cached day’s switches on a retag without touching the cache', async () => {
+		const dbName = `app-${Math.random()}`;
+		const app = await open(undefined, dbName);
+		const d1 = app.do({ k: 'createTask', title: 'report', area: 'work' });
+		const d2 = app.do({ k: 'createTask', title: 'essay', area: 'College' });
+		if (!d1.ok || !d2.ok) throw new Error('rejected');
+		const [a, c] = [d1.changes[0].id as TaskId, d2.changes[0].id as TaskId];
+		const yday = '2026-11-09' as DayKey;
+		app.do({ k: 'tap', task: a, at: at('2026-11-09T10:00:00') as Instant });
+		app.do({ k: 'tap', task: c, at: at('2026-11-09T11:00:00') as Instant });
+		await app.flushed();
+
+		const [before] = await app.range(yday, yday);
+		expect(splitSwitches(before.agg.switchLog, app.areas)).toMatchObject({ hard: 1, soft: 0 });
+		const row = await stored(dbName, 'dayAgg', yday);
+		const aggGen = () =>
+			stored(dbName, 'meta', 'meta').then((m) => (m as { aggGen: number }).aggGen);
+		const gen = await aggGen();
+		expect(row).toEqual(before.agg);
+
+		app.do({ k: 'editTask', task: c, area: 'work' });
+		await app.flushed();
+
+		expect(await aggGen()).toBe(gen);
+		expect(await stored(dbName, 'dayAgg', yday)).toEqual(row);
+		const [after] = await app.range(yday, yday);
+		expect(splitSwitches(after.agg.switchLog, app.areas)).toMatchObject({ hard: 0, soft: 1 });
 	});
 });
 
