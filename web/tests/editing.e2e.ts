@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, open, planDay, row, setClock, tap, test } from './support/fixtures';
+import { expect, open, openEmpty, planDay, row, setClock, tap, test } from './support/fixtures';
 import { addDays, at, Seed, TODAY } from './support/seed';
 
 const switches = (page: Page) => page.getByRole('main').locator('header').getByRole('img').first();
@@ -124,10 +124,8 @@ test.describe('a day left running overnight', () => {
 			.mark(at(TODAY, '21:00'), { k: 'tap', task: 'seed_a' })
 			.mark(at(TODAY, '23:30'), { k: 'rest' })
 			.push(request);
-		await open(page);
+		await openEmpty(page);
 		const sheet = page.getByRole('dialog');
-		if (await sheet.isVisible()) await sheet.getByRole('button', { name: 'done' }).click();
-		await expect(sheet).toBeHidden();
 		await expect(page.getByRole('main'), 'the night counts as rest').toContainText('rest 4h30');
 
 		await page.getByRole('button', { name: 'forgot to tick?' }).click();
