@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest';
+import { areasOf } from '../domain/areas';
 import { parseCheckIn } from '../domain/checkin';
 import { deriveDay, FOLD_START } from '../domain/focus';
-import type { DayKey, Instant, Mark, MarkId, TaskId } from '../domain/model';
+import {
+	area,
+	type DayKey,
+	type Instant,
+	type Mark,
+	type MarkId,
+	type Task,
+	type TaskId
+} from '../domain/model';
 import { aggregateDay, rollup, type DaySummary } from '../domain/stats';
 import { rangeOf } from '../domain/time';
 import { contrast } from './compare';
@@ -138,12 +147,32 @@ describe('heatmap metrics', () => {
 		checkIn: parseCheckIn(answers)
 	});
 
+	const tags = (mailTag: string | null, reportTag: string | null) =>
+		areasOf(
+			(
+				[
+					[mail, mailTag],
+					[report, reportTag]
+				] as const
+			).map(([id, tag]) => ({ id, status: 'active', area: area(tag) }) as unknown as Task)
+		);
+	const none = tags(null, null);
+
 	it('reads a day with nothing watched as no data, not as zero', () => {
 		const empty = aggregateDay(deriveDay([], range, FOLD_START, false), settings);
-		expect(METRICS.switches.value(summary(empty))).toBeNull();
-		expect(METRICS.switches.value(summary())).toBe(1);
-		expect(METRICS.strain.value(summary())).toBeNull();
-		expect(METRICS.strain.value(summary(undefined, { strain: 4 }))).toBe(4);
+		expect(METRICS.switches.value(summary(empty), none)).toBeNull();
+		expect(METRICS.switches.value(summary(), none)).toBe(1);
+		expect(METRICS.strain.value(summary(), none)).toBeNull();
+		expect(METRICS.strain.value(summary(undefined, { strain: 4 }), none)).toBe(4);
+	});
+
+	it('counts hard switches by the tags as they stand, and no data when none could be sorted', () => {
+		const empty = aggregateDay(deriveDay([], range, FOLD_START, false), settings);
+		expect(METRICS.hard.value(summary(), tags('work', 'college'))).toBe(1);
+		expect(METRICS.hard.value(summary(), tags('work', 'work'))).toBe(0);
+		expect(METRICS.hard.value(summary(), tags('work', null))).toBeNull();
+		expect(METRICS.hard.value(summary(), none)).toBeNull();
+		expect(METRICS.hard.value(summary(empty), tags('work', 'college'))).toBeNull();
 	});
 
 	it('shades from lightest to darkest across the scale', () => {

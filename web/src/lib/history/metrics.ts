@@ -1,3 +1,4 @@
+import { hardOf, splitSwitches, type Areas } from '../domain/areas';
 import { CHECKIN_FIELDS } from '../domain/checkin';
 import type { DayKey } from '../domain/model';
 import type { DayAggregate, DaySummary } from '../domain/stats';
@@ -11,12 +12,10 @@ export function tracked(agg: DayAggregate): boolean {
 	return agg.ticks > 0 || agg.focusMs > 0 || agg.restMs > 0;
 }
 
-export type MetricId = 'switches' | 'focus' | 'juggle' | 'load' | 'strain' | 'headache';
-
 export type Metric = {
 	readonly label: string;
 	/** Null when the day has nothing to say about it. */
-	readonly value: (s: DaySummary) => number | null;
+	readonly value: (s: DaySummary, areas: Areas) => number | null;
 	/** The value that reads as lightest, and the floor of the value that reads as darkest. */
 	readonly lo: number;
 	readonly hi: (values: readonly number[]) => number;
@@ -39,14 +38,22 @@ function answerLabel(key: 'strain' | 'headache', v: number): string {
 
 const answer = (key: 'strain' | 'headache') => (s: DaySummary) => s.checkIn[key] ?? null;
 
-/** The year heatmap's metrics. Counts scale to the busiest day; answers to their scale. */
-export const METRICS: Readonly<Record<MetricId, Metric>> = {
+const DEFS = {
 	switches: {
 		label: 'switches',
 		value: (s) => (tracked(s.agg) ? s.agg.switches : null),
 		lo: 0,
 		hi: most(12),
 		format: (v) => `${v} ${v === 1 ? 'switch' : 'switches'}`,
+		short: String,
+		additive: true
+	},
+	hard: {
+		label: 'hard switches',
+		value: (s, areas) => (tracked(s.agg) ? hardOf(splitSwitches(s.agg.switchLog, areas)) : null),
+		lo: 0,
+		hi: most(6),
+		format: (v) => `${v} hard ${v === 1 ? 'switch' : 'switches'}`,
 		short: String,
 		additive: true
 	},
@@ -95,7 +102,12 @@ export const METRICS: Readonly<Record<MetricId, Metric>> = {
 		short: (v) => answerLabel('headache', Math.round(v)),
 		additive: false
 	}
-};
+} satisfies Record<string, Metric>;
+
+export type MetricId = keyof typeof DEFS;
+
+/** The year heatmap's metrics. Counts scale to the busiest day; answers to their scale. */
+export const METRICS: Readonly<Record<MetricId, Metric>> = DEFS;
 
 export const METRIC_IDS = Object.keys(METRICS) as MetricId[];
 

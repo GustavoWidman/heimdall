@@ -5,7 +5,7 @@
 
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
-	import { REASONS, type MarkId, type Task } from '#lib/app/app.svelte.ts';
+	import { REASONS, hardOf, splitSwitches, type MarkId, type Task } from '#lib/app/app.svelte.ts';
 	import Brand from '#lib/ui/Brand.svelte';
 	import { dayLabel } from '#lib/ui/format.ts';
 	import Odometer from '#lib/ui/Odometer.svelte';
@@ -29,6 +29,8 @@
 	const rows = $derived(
 		today.board.filter((r) => r.task.status !== 'archived' || r.day.ticks > 0 || r.inFocus)
 	);
+	const kinds = $derived(splitSwitches(today.view.switchLog, app.areas));
+	const hard = $derived(hardOf(kinds));
 	const reasons = $derived(
 		REASONS.map((r) => ({ r, n: today.view.transitions.filter((t) => t.reason === r).length }))
 	);
@@ -114,6 +116,11 @@
 		<span class="count">
 			<span class="big"><Odometer value={today.view.switches} /></span>
 			<span class="label">{today.view.switches === 1 ? 'switch' : 'switches'}</span>
+			{#if hard !== null}
+				<span class="label" title="{kinds.soft} soft · {kinds.unsorted} unsorted"
+					>· {hard} hard</span
+				>
+			{/if}
 		</span>
 	</header>
 

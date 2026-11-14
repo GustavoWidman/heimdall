@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, hold, open, planDay, row, setClock, tap, test } from './support/fixtures';
+import { expect, hold, open, planDay, row, setClock, shot, tap, test } from './support/fixtures';
 import { addDays, at, busyToday, history, TODAY } from './support/seed';
 
 const switches = (page: Page) => page.getByRole('main').locator('header').getByRole('img').first();
@@ -301,6 +301,38 @@ test.describe('on a busy day', () => {
 			);
 		expect(cut, 'details cut part way').toEqual([]);
 	});
+
+	test('the header counts the hard switches by the tags as they stand', async ({
+		page,
+		request
+	}, info) => {
+		await busyToday(history(3)).push(request);
+		await open(page);
+		const header = page.getByRole('main').locator('header');
+		await expect(switches(page)).toHaveAccessibleName('15');
+		await expect(header).toContainText('· 8 hard');
+		await shot(page, `${info.project.name}-today-hard`);
+
+		await open(page, '/tasks');
+		await page.getByRole('button', { name: /^thesis · chapter 3/ }).click();
+		const sheet = page.getByRole('dialog');
+		await sheet.getByLabel('tag', { exact: true }).fill('work');
+		await sheet.getByRole('button', { name: 'save' }).click();
+		await expect(sheet).toBeHidden();
+
+		await open(page);
+		await expect(switches(page)).toHaveAccessibleName('15');
+		await expect(header).toContainText('· 5 hard');
+	});
+});
+
+test('the header leaves hard switches out while no task has a tag', async ({ page, touch }) => {
+	await planDay(page, ['alpha', 'beta']);
+	await tap(row(page, 'alpha'), touch);
+	await tap(row(page, 'beta'), touch);
+	const header = page.getByRole('main').locator('header');
+	await expect(switches(page)).toHaveAccessibleName('1');
+	await expect(header).not.toContainText('hard');
 });
 
 test('a quick glance away and back reads as a juggle, unless the window is off', async ({
