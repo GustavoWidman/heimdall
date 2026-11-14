@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, open, planDay, test } from './support/fixtures';
+import { expect, open, planDay, shot, test } from './support/fixtures';
 import { TODAY } from './support/seed';
 
 const group = (page: Page, name: string) =>
@@ -68,4 +68,49 @@ test('a long board spreads its tasks over the palette before repeating a color',
 	for (const h of hues) uses.set(h, (uses.get(h) ?? 0) + 1);
 	expect(new Set(hues.slice(0, 10)).size, 'the first ten all differ').toBe(10);
 	expect(Math.max(...uses.values()), 'no color three times over').toBe(2);
+});
+
+test('a task takes one tag, typed once and then picked, and shows it on its row', async ({
+	page
+}, info) => {
+	await open(page, '/tasks');
+	const sheet = page.getByRole('dialog');
+	const tag = sheet.getByLabel('tag', { exact: true });
+	const inUse = sheet.getByRole('group', { name: 'tags in use' });
+	const task = (title: string) =>
+		group(page, 'active').getByRole('button', { name: new RegExp(`^${title}`) });
+
+	await page.getByRole('button', { name: 'new task' }).click();
+	await expect(tag).toHaveAttribute('placeholder', 'none');
+	await sheet.getByLabel('title').fill('lab report');
+	await tag.fill('  College ');
+	await sheet.getByRole('button', { name: 'add task' }).click();
+	await expect(sheet).toBeHidden();
+	await expect(task('lab report')).toContainText('college');
+
+	await page.getByRole('button', { name: 'new task' }).click();
+	await sheet.getByLabel('title').fill('essay draft');
+	await tag.fill('COLLEGE');
+	await expect(inUse.getByRole('button', { name: 'college' })).toHaveAttribute(
+		'aria-pressed',
+		'true'
+	);
+	await tag.fill('');
+	await inUse.getByRole('button', { name: 'college' }).click();
+	await expect(tag).toHaveValue('college');
+	await shot(page, `${info.project.name}-tag-picker`);
+	await sheet.getByRole('button', { name: 'add task' }).click();
+	await expect(task('essay draft')).toContainText('college');
+
+	await task('lab report').click();
+	await inUse.getByRole('button', { name: 'college' }).click();
+	await expect(tag).toHaveValue('');
+	await expect(inUse.getByRole('button', { name: 'college' })).toHaveAttribute(
+		'aria-pressed',
+		'false'
+	);
+	await sheet.getByRole('button', { name: 'save' }).click();
+	await expect(sheet).toBeHidden();
+	await expect(task('lab report')).not.toContainText('college');
+	await expect(task('essay draft')).toContainText('college');
 });

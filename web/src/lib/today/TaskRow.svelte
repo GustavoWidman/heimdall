@@ -144,6 +144,7 @@
 		<span class="t">
 			<span class="n">{task.title}</span>
 			<span class="m">
+				{#if task.area}<span>{task.area}</span>{/if}
 				{#if task.status === 'done'}
 					<span class="tag">done</span>
 				{/if}

@@ -111,6 +111,7 @@
 									<span class="body">
 										<span class="t">{t.title}</span>
 										<span class="meta label">
+											{#if t.area}<span>{t.area}</span>{/if}
 											{#if t.longRunning}<span>long-term</span>{/if}
 											{#if dl}<span class:near={dl.near}>{dl.text}</span>{/if}
 											{#if onToday.has(t.id)}<span>on today</span>{/if}
