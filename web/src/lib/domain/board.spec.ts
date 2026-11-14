@@ -19,6 +19,7 @@ function task(id: string, extra: Partial<Task> = {}): Task {
 		longRunning: false,
 		status: 'active',
 		createdAt: 0 as Instant,
+		area: null,
 		...extra
 	};
 }

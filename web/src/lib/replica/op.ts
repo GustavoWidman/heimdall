@@ -6,6 +6,7 @@ import {
 	type CheckInValue
 } from '../domain/checkin';
 import {
+	area,
 	dayKey,
 	dayStartHour,
 	bounceMinutes,
@@ -18,6 +19,7 @@ import {
 	taskStatus,
 	timeZone,
 	title,
+	type Area,
 	type Brand,
 	type DayKey,
 	type DayStartHour,
@@ -55,6 +57,7 @@ export type Fields = {
 		longRunning: boolean;
 		status: TaskStatus;
 		createdAt: Instant;
+		area: Area | null;
 	};
 	mark: { at: Instant; gesture: Gesture; voided: boolean; reason: Reason | null };
 	plan: { on: boolean; rank: string };
@@ -99,7 +102,8 @@ export const SCHEMA: {
 		deadline: orNull(instant),
 		longRunning: bool,
 		status: req(taskStatus),
-		createdAt: req(instant)
+		createdAt: req(instant),
+		area: orNull(area)
 	},
 	mark: { at: req(instant), gesture: req(gesture), voided: bool, reason: orNull(reason) },
 	plan: { on: bool, rank },
@@ -303,7 +307,8 @@ const builders: { [K in Kind]: (rec: Rec) => Entity[K] | null } = {
 			deadline: f.deadline ?? null,
 			longRunning: f.longRunning ?? false,
 			status: f.status ?? 'active',
-			createdAt: f.createdAt ?? (0 as Instant)
+			createdAt: f.createdAt ?? (0 as Instant),
+			area: f.area ?? null
 		};
 	},
 	mark(rec) {

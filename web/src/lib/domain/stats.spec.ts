@@ -197,7 +197,8 @@ describe('deadlinePressure', () => {
 		deadline,
 		longRunning: false,
 		status: 'active',
-		createdAt: 0 as Instant
+		createdAt: 0 as Instant,
+		area: null
 	});
 	const now = notebook.local(notebook.day, '23:00');
 

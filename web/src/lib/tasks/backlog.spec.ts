@@ -15,6 +15,7 @@ function task(title: string, over: Record<string, unknown> = {}): Task {
 		longRunning: false,
 		status: 'active',
 		createdAt: ++n,
+		area: null,
 		...over
 	} as Task;
 }

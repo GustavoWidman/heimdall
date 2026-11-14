@@ -225,6 +225,22 @@ describe('parseEntity', () => {
 		});
 	});
 
+	it('reads a stored tag in its normalized form, and an unreadable one as no tag', () => {
+		const task = (tag: unknown) =>
+			parseEntity(
+				'task',
+				merge(undefined, {
+					hlc: hlc(1, 0, 'aaaaaaaaaa'),
+					kind: 'task',
+					id: 't_a',
+					set: { title: 'report', hue: 10, area: tag }
+				})
+			);
+		expect(task('WORK ')).toMatchObject({ title: 'report', area: 'work' });
+		expect(task(5)).toMatchObject({ title: 'report', area: null });
+		expect(task(null)).toMatchObject({ area: null });
+	});
+
 	it('does not render a mark whose gesture this build cannot read', () => {
 		const op = {
 			hlc: hlc(1, 0, 'aaaaaaaaaa'),

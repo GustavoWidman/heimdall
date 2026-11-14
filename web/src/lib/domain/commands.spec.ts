@@ -4,6 +4,7 @@ import { boardOrder } from './board';
 import { decide, type DecideContext, type Intent } from './commands';
 import { carryIn, deriveDay } from './focus';
 import {
+	area,
 	parsePlanId,
 	type DayKey,
 	type Instant,
@@ -166,6 +167,67 @@ describe('tasks', () => {
 			title: 'final report',
 			deadline: local(DAY, '18:00'),
 			status: 'done'
+		});
+	});
+});
+
+describe('task tags', () => {
+	it.each([
+		['  Work ', 'work'],
+		['WORK', 'work'],
+		['Side\t  Project', 'side project'],
+		['x'.repeat(32), 'x'.repeat(32)],
+		['', null],
+		['   ', null],
+		['x'.repeat(33), null],
+		[42, null],
+		[null, null]
+	])('reads %j as %j', (raw, expected) => {
+		expect(area(raw)).toBe(expected);
+		expect(area(area(raw))).toBe(expected);
+	});
+
+	it('creates a task with no tag unless one is given', () => {
+		const w = world(local(DAY, '09:00'));
+		created(w, 'report');
+		w.do({ k: 'createTask', title: 'essay', area: ' College ' });
+		expect(w.tasks().map((t) => [t.title, t.area])).toEqual([
+			['report', null],
+			['essay', 'college']
+		]);
+	});
+
+	it('sets, normalizes and clears a tag through an edit', () => {
+		const w = world(local(DAY, '09:00'));
+		const a = created(w, 'report');
+		w.do({ k: 'editTask', task: a, area: 'College ' });
+		expect(w.tasks()[0].area).toBe('college');
+		w.do({ k: 'editTask', task: a, area: '  ' });
+		expect(w.tasks()[0].area).toBeNull();
+		w.do({ k: 'editTask', task: a, area: 'work' });
+		w.do({ k: 'editTask', task: a, area: null });
+		expect(w.tasks()[0].area).toBeNull();
+	});
+
+	it('rejects a tag longer than 32 characters and keeps the old one', () => {
+		const w = world(local(DAY, '09:00'));
+		const a = created(w, 'report');
+		w.do({ k: 'editTask', task: a, area: 'work' });
+		expect(w.do({ k: 'editTask', task: a, area: 'x'.repeat(33) })).toMatchObject({
+			ok: false,
+			rejection: { field: 'area' }
+		});
+		expect(w.tasks()[0].area).toBe('work');
+	});
+
+	it('writes nothing when the tag only differs in spelling', () => {
+		const w = world(local(DAY, '09:00'));
+		const a = created(w, 'report');
+		w.do({ k: 'editTask', task: a, area: 'work' });
+		expect(w.do({ k: 'editTask', task: a, area: ' WORK' })).toEqual({ ok: true, changes: [] });
+		expect(w.do({ k: 'editTask', task: a, area: 'Work', title: 'final' })).toEqual({
+			ok: true,
+			changes: [{ kind: 'task', id: a, set: { title: 'final' } }]
 		});
 	});
 });
