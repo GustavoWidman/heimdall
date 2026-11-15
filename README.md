@@ -117,16 +117,35 @@ the flake exports `packages.<system>.heimdall`, the server with the web app bake
 
 with `virtualHost` set, caddy serves the web app straight from its files and proxies only `/api` to the server. hashed assets are cached for a year, everything else is revalidated by a content-hash etag, and every response carries security headers. the snippet behind it is `share/heimdall/heimdall.caddy` in the package, for a caddy configured by hand.
 
+[upstreamer](https://github.com/GustavoWidman/upstreamer) can serve the same host instead: import its nixos module and set `proxy = "upstreamer"`. heimdall's module adds the host's headers and routes to `services.upstreamer.virtualHosts.<host>`, and the host's tls is set there.
+
+```nix
+{
+  imports = [
+    inputs.heimdall.nixosModules.default
+    inputs.upstreamer.nixosModules.default
+  ];
+
+  services.heimdall = {
+    enable = true;
+    virtualHost = "heimdall.example.com";
+    proxy = "upstreamer";
+    passwordHashFile = config.age.secrets.heimdall-hash.path;
+  };
+}
+```
+
 | option | default | description |
 | ------ | ------- | ----------- |
 | `enable` | `false` | run the sync server and serve the web app |
 | `package` | this flake's `heimdall` | the server, with the web app it serves |
 | `listen` | `127.0.0.1:7979` | address and port to bind |
-| `virtualHost` | none | a caddy host that serves the app and proxies `/api` |
+| `virtualHost` | none | a proxy host that serves the app and proxies `/api` |
+| `proxy` | `"caddy"` | the proxy serving `virtualHost`: `"caddy"` or `"upstreamer"` |
 | `dataDir` | `/var/lib/heimdall` | where the sqlite database lives |
 | `passwordHashFile` | none | an argon2id hash from `heimdall hash-password` |
 
-the unit runs as a dynamic user with a hardened sandbox, and the module has a vm test (`checks.x86_64-linux.heimdall-module`).
+the unit runs as a dynamic user with a hardened sandbox, and the module has a vm test (`checks.x86_64-linux.heimdall-module`) and a check that evaluates it with each proxy (`checks.<system>.heimdall-proxy`).
 
 every pull request runs `nix flake check` on x86_64-linux, the vm test included, and every other check on aarch64-linux, which heimdall also serves from. the version lives in `Cargo.toml`, with `Cargo.lock` and `web/package.json` agreeing, and a pull request must raise it unless labeled `no-release`. a push to `main` that brings a version with no release yet runs `nix flake check`, builds heimdall for x86_64-linux, aarch64-linux and aarch64-darwin, pushes it to `https://cache.r3dlust.com` (key `cache.r3dlust.com-1:Wdkf9mes2ued0P7C7CL3Jax1b4KPuJwQpM3h4G/Z+yI=`) pinned as `heimdall-<system>`, then tags it `v<version>` and releases it. a push that releases nothing builds nothing. keep the input's own `nixpkgs` (no `follows`) and a host gets that exact build from the cache.
 

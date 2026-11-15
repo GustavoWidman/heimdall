@@ -1,14 +1,102 @@
-{ self, ... }:
+{ self, nixpkgs, ... }:
 {
   flake.nixosModules.default =
     {
       config,
       lib,
+      options,
       pkgs,
       ...
     }:
     let
       cfg = config.services.heimdall;
+      web = cfg.package.web;
+
+      # heimdall.caddy as an upstreamer virtual host.
+      upstreamerHost = {
+        # Site headers go on every response of the host, proxied and error ones included.
+        headers = {
+          Server = null;
+          X-Content-Type-Options = "nosniff";
+          X-Frame-Options = "DENY";
+          Referrer-Policy = "no-referrer";
+          Permissions-Policy = "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()";
+          Cross-Origin-Opener-Policy = "same-origin";
+        };
+
+        routes = [
+          {
+            # upstreamer keeps Host and sets X-Forwarded-Proto for heimdall's same-origin
+            # check, and writes each event of /api/live as it arrives. No encode here: the
+            # server compresses /api/sync itself.
+            name = "api";
+            when.path = "/api/*";
+            proxy = "http://${cfg.listen}";
+          }
+          {
+            # Hashed build assets never change.
+            name = "immutable";
+            when.path = "/_app/immutable/*";
+            routes = [
+              { headers.Cache-Control = "public, max-age=31536000, immutable"; }
+              {
+                files = {
+                  root = "${web}";
+                  precompressed = [
+                    "br"
+                    "gzip"
+                  ];
+                };
+              }
+            ];
+          }
+          # Everything else, index.html and the service worker first of all, is revalidated on
+          # every load so a deploy reaches clients. The build writes a content-hash ETag beside
+          # each file, since every file in the Nix store has the same mtime; Last-Modified would
+          # lie.
+          {
+            headers = {
+              Cache-Control = "no-cache";
+              Last-Modified = null;
+            };
+          }
+          { requestHeaders.If-Modified-Since = null; }
+          {
+            # The sidecars are read in place of a file, never served as one.
+            name = "sidecar";
+            when.path = [
+              "*.etag"
+              "*.br"
+              "*.gz"
+            ];
+            error = 404;
+          }
+          {
+            # Client routes deep-link to the app; a missing asset under /_app stays a 404.
+            name = "client-route";
+            when.none = [
+              { path = "/_app/*"; }
+              {
+                file = {
+                  root = "${web}";
+                  paths = [ "{path}" ];
+                };
+              }
+            ];
+            rewrite = "/index.html";
+          }
+          {
+            files = {
+              root = "${web}";
+              precompressed = [
+                "br"
+                "gzip"
+              ];
+              etagSidecar = ".etag";
+            };
+          }
+        ];
+      };
     in
     {
       options.services.heimdall = {
@@ -47,10 +135,25 @@
           default = null;
           example = "heimdall.example.com";
           description = ''
-            Host name of a Caddy virtual host for heimdall. Caddy serves the web app from its
-            files, with long-lived caching for hashed assets, content-hash ETags, and security
-            headers, and proxies only /api to the server. TLS directives for the host can go
-            in `services.caddy.virtualHosts.<host>.extraConfig`, which is merged with this.
+            Host name of a virtual host for heimdall on the reverse proxy `proxy` names. The
+            proxy serves the web app from its files, with long-lived caching for hashed assets,
+            content-hash ETags, and security headers, and proxies only /api to the server.
+            The host's TLS is set on the proxy's own virtual host, which is merged with this:
+            `services.caddy.virtualHosts.<host>.extraConfig` for Caddy,
+            `services.upstreamer.virtualHosts.<host>.tls` for upstreamer.
+          '';
+        };
+
+        proxy = lib.mkOption {
+          type = lib.types.enum [
+            "caddy"
+            "upstreamer"
+          ];
+          default = "caddy";
+          description = ''
+            The reverse proxy that serves `virtualHost`: Caddy through `services.caddy`, or
+            upstreamer through `services.upstreamer`, which needs upstreamer's NixOS module
+            imported on the host.
           '';
         };
 
@@ -66,17 +169,31 @@
       };
 
       config = lib.mkIf cfg.enable {
-        services.caddy = lib.mkIf (cfg.virtualHost != null) {
-          enable = lib.mkDefault true;
-          virtualHosts.${cfg.virtualHost}.extraConfig = ''
-            import ${cfg.package}/share/heimdall/heimdall.caddy ${cfg.package.web} ${cfg.listen}
-          '';
+        services = {
+          caddy = lib.mkIf (cfg.virtualHost != null && cfg.proxy == "caddy") {
+            enable = lib.mkDefault true;
+            virtualHosts.${cfg.virtualHost}.extraConfig = ''
+              import ${cfg.package}/share/heimdall/heimdall.caddy ${cfg.package.web} ${cfg.listen}
+            '';
+          };
+        }
+        # Without upstreamer's module, services.upstreamer is not an option, and even a
+        # disabled definition of it would fail evaluation.
+        // lib.optionalAttrs (options ? services.upstreamer) {
+          upstreamer = lib.mkIf (cfg.virtualHost != null && cfg.proxy == "upstreamer") {
+            enable = lib.mkDefault true;
+            virtualHosts.${cfg.virtualHost} = upstreamerHost;
+          };
         };
 
         assertions = [
           {
             assertion = lib.hasPrefix "/var/lib/" cfg.dataDir;
             message = "services.heimdall.dataDir must be under /var/lib/.";
+          }
+          {
+            assertion = cfg.proxy == "upstreamer" -> options ? services.upstreamer;
+            message = ''services.heimdall.proxy = "upstreamer" needs upstreamer's NixOS module (services.upstreamer).'';
           }
         ];
 
@@ -142,8 +259,6 @@
       };
     };
 
-  # Boots a VM with the module, then logs in, syncs, restarts, and syncs again; then goes
-  # through the Caddy virtual host.
   perSystem =
     {
       pkgs,
@@ -151,8 +266,118 @@
       self',
       ...
     }:
+    let
+      # A host with heimdall behind a virtual host, evaluated but never built: the package is
+      # a stand-in, since only the proxy configuration is read.
+      package = {
+        type = "derivation";
+        name = "heimdall";
+        outPath = "/nix/store/heimdall";
+        web = "/nix/store/heimdall-web";
+      };
+      host =
+        proxy: modules:
+        (nixpkgs.lib.nixosSystem {
+          modules = [
+            self.nixosModules.default
+            {
+              boot.isContainer = true;
+              system.stateVersion = lib.trivial.release;
+              nixpkgs.hostPlatform = "x86_64-linux";
+              services.heimdall = {
+                enable = true;
+                inherit package;
+                virtualHost = "heimdall.example.com";
+                passwordHashFile = "/run/heimdall-password-hash";
+              }
+              // lib.optionalAttrs (proxy != null) { inherit proxy; };
+            }
+          ]
+          ++ modules;
+        }).config;
+
+      # The options of upstreamer's module that heimdall's sets, typed as upstreamer types them.
+      upstreamer =
+        { lib, ... }:
+        {
+          options.services.upstreamer = {
+            enable = lib.mkEnableOption "upstreamer";
+            virtualHosts = lib.mkOption {
+              default = { };
+              type = lib.types.attrsOf (
+                lib.types.submodule {
+                  options.headers = lib.mkOption {
+                    type = lib.types.attrsOf (lib.types.nullOr lib.types.str);
+                    default = { };
+                  };
+                  options.routes = lib.mkOption {
+                    type = lib.types.listOf (pkgs.formats.json { }).type;
+                    default = [ ];
+                  };
+                }
+              );
+            };
+          };
+        };
+
+      failed = config: map (a: a.message) (lib.filter (a: !a.assertion) config.assertions);
+      caddyServes =
+        config:
+        config.services.caddy.enable
+        &&
+          config.services.caddy.virtualHosts."heimdall.example.com".extraConfig == ''
+            import /nix/store/heimdall/share/heimdall/heimdall.caddy /nix/store/heimdall-web 127.0.0.1:7979
+          '';
+
+      # Every value of a `root` field, at any depth.
+      roots =
+        value:
+        if lib.isAttrs value then
+          lib.optional (value ? root) value.root ++ lib.concatMap roots (lib.attrValues value)
+        else if lib.isList value then
+          lib.concatMap roots value
+        else
+          [ ];
+
+      viaCaddy = host null [ upstreamer ];
+      viaCaddyAlone = host null [ ];
+      viaUpstreamer = host "upstreamer" [ upstreamer ];
+      viaUpstreamerAlone = host "upstreamer" [ ];
+      emitted = viaUpstreamer.services.upstreamer.virtualHosts."heimdall.example.com";
+
+      expectations = {
+        "Caddy serves the host by default" = caddyServes viaCaddy && failed viaCaddy == [ ];
+        "a host without upstreamer's module evaluates as before" =
+          caddyServes viaCaddyAlone && failed viaCaddyAlone == [ ];
+        "upstreamer stays off by default" =
+          !viaCaddy.services.upstreamer.enable && viaCaddy.services.upstreamer.virtualHosts == { };
+        "upstreamer serves the host when chosen" =
+          viaUpstreamer.services.upstreamer.enable && failed viaUpstreamer == [ ];
+        "Caddy stays off when upstreamer is chosen" =
+          !viaUpstreamer.services.caddy.enable && viaUpstreamer.services.caddy.virtualHosts == { };
+        "upstreamer proxies /api to the server" = lib.any (
+          r: r.proxy or null == "http://127.0.0.1:7979"
+        ) emitted.routes;
+        "upstreamer reads files from the web build only" =
+          lib.unique (roots emitted.routes) == [ "/nix/store/heimdall-web" ];
+        "upstreamer sets the security headers" = emitted.headers.X-Frame-Options == "DENY";
+        "choosing upstreamer without its module fails an assertion" =
+          lib.any (lib.hasInfix "services.upstreamer") (failed viaUpstreamerAlone);
+      };
+      unmet = lib.attrNames (lib.filterAttrs (_: ok: !ok) expectations);
+    in
     {
-      checks = lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+      checks = {
+        # Evaluates the module with each proxy, and keeps the virtual host it gives upstreamer.
+        heimdall-proxy =
+          if unmet == [ ] then
+            pkgs.writeText "heimdall-upstreamer-host.json" (builtins.toJSON emitted)
+          else
+            throw "heimdall-proxy: ${lib.concatStringsSep "; " unmet}";
+      }
+      // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+        # Boots a VM with the module, then logs in, syncs, restarts, and syncs again; then goes
+        # through the Caddy virtual host.
         heimdall-module = pkgs.testers.runNixOSTest {
           name = "heimdall-module";
           nodes.machine = {
